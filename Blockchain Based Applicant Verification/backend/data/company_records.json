@@ -1,0 +1,202 @@
+[
+  {
+    "employee_id": "E101",
+    "name": "Praneeth Fernando",
+    "company": "Virtusa",
+    "job_title": "Software Intern",
+    "job_category": "Internship",
+    "start_date": "2023-01-01",
+    "end_date": "2023-06-30",
+    "description": "Assisted in developing REST APIs and contributed to internal tooling."
+  },
+  {
+    "employee_id": "E102",
+    "name": "Sajith Perera",
+    "company": "WSO2",
+    "job_title": "Software Engineer",
+    "job_category": "Engineering",
+    "start_date": "2022-05-15",
+    "end_date": "2023-11-10",
+    "description": "Worked on middleware platforms and backend systems."
+  },
+  {
+    "employee_id": "E103",
+    "name": "Nimali Wijesinghe",
+    "company": "IFS",
+    "job_title": "QA Engineer",
+    "job_category": "Quality Assurance",
+    "start_date": "2021-07-01",
+    "end_date": "2023-01-30",
+    "description": "Led test automation efforts using Selenium and Python."
+  },
+  {
+    "employee_id": "E104",
+    "name": "Isuru Gunasekara",
+    "company": "Dialog Axiata",
+    "job_title": "Network Support Intern",
+    "job_category": "Telecom",
+    "start_date": "2022-01-10",
+    "end_date": "2022-06-10",
+    "description": "Supported maintenance of telecom infrastructure."
+  },
+  {
+    "employee_id": "E105",
+    "name": "Thilini De Silva",
+    "company": "CodeGen",
+    "job_title": "Software Engineer",
+    "job_category": "Engineering",
+    "start_date": "2023-03-01",
+    "end_date": "2024-01-01",
+    "description": "Built travel booking modules and integrated third-party APIs."
+  },
+  {
+    "employee_id": "E106",
+    "name": "Kasun Jayawardena",
+    "company": "Zone24x7",
+    "job_title": "Business Analyst",
+    "job_category": "Business",
+    "start_date": "2022-02-10",
+    "end_date": "2023-07-30",
+    "description": "Documented business requirements and worked on solution mapping."
+  },
+  {
+    "employee_id": "E107",
+    "name": "Ruwani Karunaratne",
+    "company": "Sysco LABS",
+    "job_title": "DevOps Engineer",
+    "job_category": "Operations",
+    "start_date": "2023-04-01",
+    "end_date": "2024-01-01",
+    "description": "Automated CI/CD pipelines using Jenkins and Docker."
+  },
+  {
+    "employee_id": "E108",
+    "name": "Chaminda Wickramasinghe",
+    "company": "Epic Lanka",
+    "job_title": "UI/UX Designer",
+    "job_category": "Design",
+    "start_date": "2021-11-01",
+    "end_date": "2022-10-31",
+    "description": "Designed modern UI interfaces for fintech applications."
+  },
+  {
+    "employee_id": "E109",
+    "name": "Sahan Gunaratne",
+    "company": "MillenniumIT ESP",
+    "job_title": "Software Intern",
+    "job_category": "Internship",
+    "start_date": "2023-02-01",
+    "end_date": "2023-07-01",
+    "description": "Involved in backend services and testing for banking systems."
+  },
+  {
+    "employee_id": "E110",
+    "name": "Dulani Rathnayake",
+    "company": "99X Technology",
+    "job_title": "Junior Data Scientist",
+    "job_category": "Data Science",
+    "start_date": "2022-08-01",
+    "end_date": "2023-12-01",
+    "description": "Built predictive models using Python and deployed ML pipelines."
+  },
+  {
+    "employee_id": "E111",
+    "name": "Sandun Dissanayake",
+    "company": "WSO2",
+    "job_title": "Software Engineer",
+    "job_category": "Engineering",
+    "start_date": "2021-05-01",
+    "end_date": "2023-03-30",
+    "description": "Developed microservices in Java and worked with API gateways."
+  },
+  {
+    "employee_id": "E112",
+    "name": "Nadeesha Alwis",
+    "company": "Brandix",
+    "job_title": "IT Support Analyst",
+    "job_category": "Support",
+    "start_date": "2022-09-15",
+    "end_date": "2023-09-14",
+    "description": "Provided internal IT support and managed inventory systems."
+  },
+  {
+    "employee_id": "E113",
+    "name": "Tharindu Amarasinghe",
+    "company": "ICTA",
+    "job_title": "Policy Intern",
+    "job_category": "Government",
+    "start_date": "2022-01-01",
+    "end_date": "2022-06-01",
+    "description": "Worked on policy documentation for ICT transformation projects."
+  },
+  {
+    "employee_id": "E114",
+    "name": "Nimesha Jayasuriya",
+    "company": "CodeGen",
+    "job_title": "Software Engineer",
+    "job_category": "Engineering",
+    "start_date": "2023-03-01",
+    "end_date": "2024-01-01",
+    "description": "Developed airline and hospitality software systems."
+  },
+  {
+    "employee_id": "E115",
+    "name": "Janith Fernando",
+    "company": "PickMe",
+    "job_title": "Android Developer",
+    "job_category": "Mobile Development",
+    "start_date": "2021-09-01",
+    "end_date": "2023-01-01",
+    "description": "Developed mobile app features and improved UI performance."
+  },
+  {
+    "employee_id": "E116",
+    "name": "Sewwandi Kaluarachchi",
+    "company": "LSEG",
+    "job_title": "Data Analyst",
+    "job_category": "Analytics",
+    "start_date": "2022-04-01",
+    "end_date": "2023-04-01",
+    "description": "Generated dashboards and analyzed financial data trends."
+  },
+  {
+    "employee_id": "E117",
+    "name": "Kalana De Alwis",
+    "company": "Virtusa",
+    "job_title": "Junior QA Engineer",
+    "job_category": "Quality Assurance",
+    "start_date": "2022-07-01",
+    "end_date": "2023-06-30",
+    "description": "Wrote test cases and managed regression test cycles."
+  },
+  {
+    "employee_id": "E118",
+    "name": "Manuri Peiris",
+    "company": "Sysco LABS",
+    "job_title": "Frontend Developer",
+    "job_category": "Web Development",
+    "start_date": "2022-10-01",
+    "end_date": "2023-10-01",
+    "description": "Worked on React.js components for web platforms."
+  },
+  {
+    "employee_id": "E119",
+    "name": "Thisara Wijeratne",
+    "company": "Dialog Axiata",
+    "job_title": "Project Intern",
+    "job_category": "Project Management",
+    "start_date": "2023-01-01",
+    "end_date": "2023-06-01",
+    "description": "Assisted in telecom project planning and coordination."
+  },
+  {
+    "employee_id": "E120",
+    "name": "Shehani Jayawardena",
+    "company": "99X Technology",
+    "job_title": "ML Engineer",
+    "job_category": "Machine Learning",
+    "start_date": "2022-05-01",
+    "end_date": "2023-11-01",
+    "description": "Built NLP models for document processing and chatbot support."
+  }
+]

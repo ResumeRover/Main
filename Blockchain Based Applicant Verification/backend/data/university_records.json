@@ -1,0 +1,162 @@
+[
+  {
+    "student_id": "U101",
+    "name": "Praneeth Fernando",
+    "university": "University of Colombo",
+    "degree": "BSc in CS",
+    "gpa": 3.78,
+    "graduation_year": 2024
+  },
+  {
+    "student_id": "U102",
+    "name": "Sajith Perera",
+    "university": "University of Moratuwa",
+    "degree": "BEng in Computer Engineering",
+    "gpa": 3.65,
+    "graduation_year": 2023
+  },
+  {
+    "student_id": "U103",
+    "name": "Nimali Wijesinghe",
+    "university": "University of Peradeniya",
+    "degree": "BSc in IT",
+    "gpa": 3.92,
+    "graduation_year": 2022
+  },
+  {
+    "student_id": "U104",
+    "name": "Isuru Gunasekara",
+    "university": "SLIIT",
+    "degree": "BSc in Computer Systems",
+    "gpa": 3.55,
+    "graduation_year": 2024
+  },
+  {
+    "student_id": "U105",
+    "name": "Thilini De Silva",
+    "university": "NSBM Green University",
+    "degree": "BSc in Software Engineering",
+    "gpa": 3.81,
+    "graduation_year": 2025
+  },
+  {
+    "student_id": "U106",
+    "name": "Kasun Jayawardena",
+    "university": "University of Kelaniya",
+    "degree": "BSc in Computer Science",
+    "gpa": 3.47,
+    "graduation_year": 2023
+  },
+  {
+    "student_id": "U107",
+    "name": "Ruwani Karunaratne",
+    "university": "University of Colombo",
+    "degree": "BSc in IT",
+    "gpa": 3.88,
+    "graduation_year": 2022
+  },
+  {
+    "student_id": "U108",
+    "name": "Chaminda Wickramasinghe",
+    "university": "University of Moratuwa",
+    "degree": "BEng in Electrical Engineering",
+    "gpa": 3.6,
+    "graduation_year": 2023
+  },
+  {
+    "student_id": "U109",
+    "name": "Sahan Gunaratne",
+    "university": "SLIIT",
+    "degree": "BSc in IT",
+    "gpa": 3.7,
+    "graduation_year": 2024
+  },
+  {
+    "student_id": "U110",
+    "name": "Dulani Rathnayake",
+    "university": "University of Peradeniya",
+    "degree": "BSc in Data Science",
+    "gpa": 3.96,
+    "graduation_year": 2023
+  },
+  {
+    "student_id": "U111",
+    "name": "Sandun Dissanayake",
+    "university": "University of Ruhuna",
+    "degree": "BSc in Software Engineering",
+    "gpa": 3.66,
+    "graduation_year": 2024
+  },
+  {
+    "student_id": "U112",
+    "name": "Nadeesha Alwis",
+    "university": "NSBM Green University",
+    "degree": "BSc in Computer Science",
+    "gpa": 3.75,
+    "graduation_year": 2023
+  },
+  {
+    "student_id": "U113",
+    "name": "Tharindu Amarasinghe",
+    "university": "University of Colombo",
+    "degree": "BSc in IT",
+    "gpa": 3.68,
+    "graduation_year": 2022
+  },
+  {
+    "student_id": "U114",
+    "name": "Nimesha Jayasuriya",
+    "university": "University of Moratuwa",
+    "degree": "BSc in Engineering",
+    "gpa": 3.82,
+    "graduation_year": 2024
+  },
+  {
+    "student_id": "U115",
+    "name": "Janith Fernando",
+    "university": "SLIIT",
+    "degree": "BSc in Computer Networks",
+    "gpa": 3.61,
+    "graduation_year": 2023
+  },
+  {
+    "student_id": "U116",
+    "name": "Sewwandi Kaluarachchi",
+    "university": "University of Kelaniya",
+    "degree": "BSc in Computer Science",
+    "gpa": 3.89,
+    "graduation_year": 2022
+  },
+  {
+    "student_id": "U117",
+    "name": "Kalana De Alwis",
+    "university": "NSBM Green University",
+    "degree": "BSc in Software Engineering",
+    "gpa": 3.73,
+    "graduation_year": 2025
+  },
+  {
+    "student_id": "U118",
+    "name": "Manuri Peiris",
+    "university": "University of Peradeniya",
+    "degree": "BSc in Information Systems",
+    "gpa": 3.84,
+    "graduation_year": 2024
+  },
+  {
+    "student_id": "U119",
+    "name": "Thisara Wijeratne",
+    "university": "University of Colombo",
+    "degree": "BSc in CS",
+    "gpa": 3.77,
+    "graduation_year": 2023
+  },
+  {
+    "student_id": "U120",
+    "name": "Shehani Jayawardena",
+    "university": "SLIIT",
+    "degree": "BSc in Data Science",
+    "gpa": 3.93,
+    "graduation_year": 2022
+  }
+]
