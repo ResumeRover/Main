@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+*.so
+*.log
+
+# Virtual environments and env files
+venv/
+.venv/
+.env/
+env/
+
+.env
+.env.*
+
+# Testing
+.coverage
+htmlcov/
+coverage.xml
+
+# IDEs and OS files
+.vscode/
+.idea/
+.DS_Store
