@@ -178,6 +178,7 @@ contract("Verification", (accounts) => {
 
     it("should track verification hashes correctly", async () => {
       // Store two different verifications
+      // Hashes for the verifications
       const dataHash1 = web3.utils.sha3("Data 1");
       const dataHash2 = web3.utils.sha3("Data 2");
 
@@ -196,7 +197,7 @@ contract("Verification", (accounts) => {
         { from: owner }
       );
 
-      // Check count
+      // Check count of verifications
       const count = await verificationContract.getVerificationCount();
       assert.equal(count, 2, "There should be 2 verifications");
 
