@@ -10,16 +10,29 @@ const keccak256 = require("js-sha3").keccak256;
 // Import contract ABI
 let contractAddress;
 try {
-  // Try to read from deployed contract file
-  const deployedInfo = JSON.parse(
-    fs.readFileSync("./deployed_contract_address.json", "utf8")
-  );
-  contractAddress = deployedInfo.address;
+  if (process.env.CONTRACT_ADDRESS) {
+    // First priority: Use address from .env file
+    contractAddress = process.env.CONTRACT_ADDRESS;
+    console.log(
+      "Using contract address from environment variables:",
+      contractAddress
+    );
+  } else {
+    // Second priority: Try to read from deployed contract file
+    const deployedInfo = JSON.parse(
+      fs.readFileSync("./deployed_contract_address.json", "utf8")
+    );
+    contractAddress = deployedInfo.address;
+    console.log(
+      "Using contract address from deployed_contract_address.json:",
+      contractAddress
+    );
+  }
 } catch (error) {
-  // If file doesn't exist, use hardcoded address (change this as needed)
+  // Third priority: If file doesn't exist and no env var, use hardcoded address
   contractAddress = "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24"; // Replace with actual address
   console.warn(
-    "Could not find deployed contract address file. Please update the contract address manually."
+    "Could not find deployed contract address file or environment variable. Using fallback address."
   );
 }
 
