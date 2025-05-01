@@ -63,3 +63,75 @@ class OracleSimulator:
             return True, f"Verified GPA of {actual_gpa} for {name} at {university}"
         else:
             return False, f"GPA mismatch for {name} at {university}. Claimed: {claimed_gpa}, Actual: {actual_gpa}"
+
+    
+    def verify_degree(self, data: Dict[str, Any]) -> Tuple[bool, str]:
+        """
+        Verify degree information against mock university database.
+        
+        Args:
+            data: Dictionary containing name, university, and degree to verify
+            
+        Returns:
+            Tuple of (verification_result, details)
+        """
+        # Extract required fields
+        name = data.get("name")
+        university = data.get("university")
+        claimed_degree = data.get("degree")
+        
+        if not all([name, university, claimed_degree]):
+            return False, "Missing required fields (name, university, degree)"
+        
+        # Query mock database
+        query_params = {"name": name, "university": university}
+        record = self.db.get_university_record_by_params(query_params)
+        
+        if not record:
+            return False, f"No records found for {name} at {university}"
+        
+        # Compare claimed degree with database record
+        actual_degree = record.get("degree")
+        
+        # Determine if they match
+        if claimed_degree.lower() == actual_degree.lower():
+            return True, f"Verified {actual_degree} degree for {name} at {university}"
+        else:
+            return False, f"Degree mismatch for {name} at {university}. Claimed: {claimed_degree}, Actual: {actual_degree}"
+    
+    def verify_employment(self, data: Dict[str, Any]) -> Tuple[bool, str]:
+        """
+        Verify employment information against mock company database.
+        
+        Args:
+            data: Dictionary containing name, company, and job_title information
+            
+        Returns:
+            Tuple of (verification_result, details)
+        """
+        # Extract required fields
+        name = data.get("name")
+        company = data.get("company")
+        claimed_job_title = data.get("job_title", None)
+        
+        if not all([name, company]):
+            return False, "Missing required fields (name, company)"
+        
+        # Query mock database
+        query_params = {"name": name, "company": company}
+        if claimed_job_title:
+            query_params["job_title"] = claimed_job_title
+            
+        records = self.db.get_employment_record_by_params(query_params)
+        
+        if not records:
+            return False, f"No employment records found for {name} at {company}"
+        
+        # If we found matching records, verification successful
+        if claimed_job_title:
+            return True, f"Verified {name} worked at {company} as {claimed_job_title}"
+        else:
+            job_titles = [r.get("job_title") for r in records]
+            return True, f"Verified {name} worked at {company} as: {', '.join(job_titles)}"
+    
+ 
