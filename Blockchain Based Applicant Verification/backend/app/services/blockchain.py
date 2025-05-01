@@ -75,3 +75,55 @@ class BlockchainClient:
         except Exception as e:
             print(f"Error initializing blockchain client: {e}")
             raise
+
+    
+    def create_data_hash(self, data: Dict[str, Any]) -> str:
+        """
+        Create a keccak256 hash from the data dictionary.
+        
+        Args:
+            data: Dictionary containing data to hash
+            
+        Returns:
+            Hex string of the keccak256 hash
+        """
+        # Convert dictionary to sorted JSON string for consistent hashing
+        data_string = json.dumps(data, sort_keys=True)
+        # Create hash
+        data_hash = self.w3.keccak(text=data_string).hex()
+        return data_hash
+    
+    def request_verification(self, data_hash: str, verification_type: VerificationType, account: Optional[str] = None) -> str:
+        """
+        Request verification for data.
+        
+        Args:
+            data_hash: Hash of the data to verify
+            verification_type: Type of verification to perform
+            account: Account to send transaction from (default: first account)
+            
+        Returns:
+            Transaction hash
+        """
+        if not account:
+            account = self.default_account
+        
+        # Convert the hex string to bytes32 format
+        bytes32_hash = Web3.to_bytes(hexstr=data_hash)
+        
+        # Build transaction
+        tx = self.contract.functions.requestVerification(
+            bytes32_hash,
+            int(verification_type)
+        ).build_transaction({
+            'from': account,
+            'gas': 200000,
+            'gasPrice': self.w3.to_wei('20', 'gwei'),
+            'nonce': self.w3.eth.get_transaction_count(account)
+        })
+        
+        # Sign and send transaction
+        signed_tx = self.w3.eth.account.sign_transaction(tx, private_key=os.getenv("PRIVATE_KEY"))
+        tx_hash = self.w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+        
+        return tx_hash.hex()
