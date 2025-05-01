@@ -26,3 +26,18 @@ class GPAVerificationRequest(BaseModel):
                 "gpa": 3.73
             }
         }
+
+class DegreeVerificationRequest(BaseModel):
+    """Request model for degree verification."""
+    name: str = Field(..., description="Full name of the student")
+    university: str = Field(..., description="Name of the university")
+    degree: str = Field(..., description="Degree name to verify")
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "name": "Kalana De Alwis",
+                "university": "NSBM Green University",
+                "degree": "BSc in Software Engineering"
+            }
+        }
