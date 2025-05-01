@@ -21,3 +21,34 @@ def create_hash(data: Dict[str, Any]) -> str:
     # Create SHA-256 hash
     hash_obj = hashlib.sha256(serialized.encode())
     return "0x" + hash_obj.hexdigest()
+
+def timestamp_to_datetime(timestamp: int) -> str:
+    """
+    Convert Unix timestamp to ISO datetime string.
+    
+    Args:
+        timestamp: Unix timestamp
+        
+    Returns:
+        ISO formatted datetime string
+    """
+    dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+    return dt.isoformat()
+
+def format_blockchain_address(address: str) -> str:
+    """
+    Format blockchain address for display.
+    
+    Args:
+        address: Ethereum address
+        
+    Returns:
+        Formatted address (first 6 chars...last 4 chars)
+    """
+    if not address:
+        return ""
+        
+    if address.startswith("0x"):
+        return f"{address[:8]}...{address[-6:]}"
+    else:
+        return f"0x{address[:6]}...{address[-4:]}"
