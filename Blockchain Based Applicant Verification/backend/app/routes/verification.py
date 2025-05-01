@@ -80,3 +80,20 @@ async def verify_degree(
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error verifying degree: {str(e)}")
+
+@router.post("/employment", response_model=VerificationResponse)
+async def verify_employment(
+    request: EmploymentVerificationRequest,
+    oracle: OracleSimulator = Depends(get_oracle)
+):
+    """
+    Verify employment information against blockchain and company records.
+    """
+    try:
+        result = oracle.verify_and_store_on_blockchain(
+            data=request.dict(),
+            verification_type=VerificationType.EMPLOYMENT
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error verifying employment: {str(e)}")
