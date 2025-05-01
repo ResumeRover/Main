@@ -56,3 +56,50 @@ class EmploymentVerificationRequest(BaseModel):
                 "job_title": "ML Engineer" 
             }
         }
+
+
+class VerificationResponse(BaseModel):
+    """Response model for verification results."""
+    data: Dict[str, Any] = Field(..., description="Original data that was verified")
+    data_hash: str = Field(..., description="Hash of the data used for blockchain storage")
+    is_verified: bool = Field(..., description="Verification result")
+    verification_type: str = Field(..., description="Type of verification performed")
+    details: str = Field(..., description="Details about the verification")
+    timestamp: int = Field(..., description="Time when verification was performed")
+    tx_hash: Optional[str] = Field(None, description="Transaction hash on blockchain")
+    status: str = Field(..., description="Status of verification (new or existing)")
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "data": {
+                    "name": "Kalana De Alwis",
+                    "university": "NSBM Green University",
+                    "gpa": 3.73
+                },
+                "data_hash": "0x8f2e3c5a2d4b6c8a0e1f3d5b7a9c2e4f6d8a0b2c4e6f8a0c2e4f6d8a0b2c4e6f8",
+                "is_verified": True,
+                "verification_type": "GPA",
+                "details": "Verified GPA of 3.73 for Kalana De Alwis at NSBM Green University",
+                "timestamp": 1651234567,
+                "tx_hash": "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b",
+                "status": "new"
+            }
+        }
+
+class BlockchainStatus(BaseModel):
+    """Model for blockchain status information."""
+    provider: str = Field(..., description="Blockchain provider URL")
+    contract_address: str = Field(..., description="Verification contract address")
+    block_number: int = Field(..., description="Current block number")
+    verification_count: int = Field(..., description="Total number of verifications stored")
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "provider": "http://localhost:7545",
+                "contract_address": "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24",
+                "block_number": 12345,
+                "verification_count": 42
+            }
+        }
