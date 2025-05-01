@@ -52,3 +52,48 @@ def format_blockchain_address(address: str) -> str:
         return f"{address[:8]}...{address[-6:]}"
     else:
         return f"0x{address[:6]}...{address[-4:]}"
+    
+def format_verification_type(type_index: int) -> str:
+    """
+    Convert verification type index to human-readable string.
+    
+    Args:
+        type_index: Verification type index from smart contract
+        
+    Returns:
+        Human-readable verification type string
+    """
+    types = {
+        0: "GPA Verification",
+        1: "Employment Verification",
+        2: "Degree Verification",
+        3: "Certificate Verification"
+    }
+    
+    return types.get(type_index, "Unknown Verification Type")
+
+def format_verification_result(result: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Format verification result for human-readable display.
+    
+    Args:
+        result: Verification result from blockchain
+        
+    Returns:
+        Formatted verification result
+    """
+    formatted = result.copy()
+    
+    # Format timestamp
+    if "timestamp" in formatted:
+        formatted["formatted_time"] = timestamp_to_datetime(formatted["timestamp"])
+    
+    # Format oracle address
+    if "oracle_address" in formatted:
+        formatted["formatted_oracle"] = format_blockchain_address(formatted["oracle_address"])
+    
+    # Format verification type
+    if "verification_type" in formatted and isinstance(formatted["verification_type"], int):
+        formatted["verification_type"] = format_verification_type(formatted["verification_type"])
+        
+    return formatted
