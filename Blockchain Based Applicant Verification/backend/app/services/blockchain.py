@@ -127,3 +127,66 @@ class BlockchainClient:
         tx_hash = self.w3.eth.send_raw_transaction(signed_tx.rawTransaction)
         
         return tx_hash.hex()
+    
+    def store_verification_result(
+        self, 
+        data_hash: str, 
+        is_verified: bool, 
+        verification_type: VerificationType, 
+        details: str,
+        account: Optional[str] = None
+    ) -> str:
+        """
+        Store verification result in the blockchain.
+        
+        Args:
+            data_hash: Hash of the data verified
+            is_verified: Verification result
+            verification_type: Type of verification performed
+            details: Additional details about verification
+            account: Account to send transaction from (default: first account)
+            
+        Returns:
+            Transaction hash
+        """
+        if not account:
+            account = self.default_account
+        
+        # Convert the hex string to bytes32 format
+        bytes32_hash = Web3.to_bytes(hexstr=data_hash)
+            
+        # If using development environment, we can use accounts directly
+        if BLOCKCHAIN_PROVIDER.endswith("7545") or BLOCKCHAIN_PROVIDER.endswith("8545"):
+            # Build transaction
+            tx_hash = self.contract.functions.storeVerificationResult(
+                bytes32_hash,
+                is_verified,
+                int(verification_type),
+                details
+            ).transact({'from': account, 'gas': 1000000})
+            
+            return tx_hash.hex()
+        else:
+            # For production, use private key
+            if not os.getenv("PRIVATE_KEY"):
+                raise ValueError("PRIVATE_KEY environment variable required for non-development environments")
+                
+            # Build transaction
+            tx = self.contract.functions.storeVerificationResult(
+                bytes32_hash,
+                is_verified,
+                int(verification_type),
+                details
+            ).build_transaction({
+                'from': account,
+                'gas': 1000000,
+                'gasPrice': self.w3.to_wei('20', 'gwei'),
+                'nonce': self.w3.eth.get_transaction_count(account)
+            })
+            
+            # Sign and send transaction
+            signed_tx = self.w3.eth.account.sign_transaction(tx, private_key=os.getenv("PRIVATE_KEY"))
+            tx_hash = self.w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+            
+            return tx_hash.hex()
+    
