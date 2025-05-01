@@ -63,3 +63,20 @@ async def verify_gpa(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error verifying GPA: {str(e)}")
 
+
+@router.post("/degree", response_model=VerificationResponse)
+async def verify_degree(
+    request: DegreeVerificationRequest,
+    oracle: OracleSimulator = Depends(get_oracle)
+):
+    """
+    Verify degree information against blockchain and university records.
+    """
+    try:
+        result = oracle.verify_and_store_on_blockchain(
+            data=request.dict(),
+            verification_type=VerificationType.DEGREE
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error verifying degree: {str(e)}")
