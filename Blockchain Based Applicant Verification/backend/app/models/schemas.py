@@ -41,3 +41,18 @@ class DegreeVerificationRequest(BaseModel):
                 "degree": "BSc in Software Engineering"
             }
         }
+
+class EmploymentVerificationRequest(BaseModel):
+    """Request model for employment verification."""
+    name: str = Field(..., description="Full name of the employee")
+    company: str = Field(..., description="Name of the company")
+    job_title: Optional[str] = Field(None, description="Job title (optional)")
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "name": "Shehani Jayawardena",
+                "company": "99X Technology",
+                "job_title": "ML Engineer" 
+            }
+        }
