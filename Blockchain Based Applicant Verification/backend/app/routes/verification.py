@@ -157,4 +157,50 @@ async def get_verification(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting verification: {str(e)}")
 
+@router.get("/mock/university/{name}")
+async def get_university_record(
+    name: str,
+    db: MockDatabase = Depends(get_db)
+):
+    """
+    Get university record for a student (for debugging/demo purposes).
+    """
+    try:
+        record = db.get_university_record_by_name(name)
+        if not record:
+            raise HTTPException(status_code=404, detail=f"No university record found for {name}")
+        
+        # Remove MongoDB _id
+        if "_id" in record:
+            del record["_id"]
+            
+        return record
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting university record: {str(e)}")
+
+@router.get("/mock/employment/{name}")
+async def get_employment_records(
+    name: str,
+    db: MockDatabase = Depends(get_db)
+):
+    """
+    Get employment records for an employee (for debugging/demo purposes).
+    """
+    try:
+        records = db.get_employment_record_by_name(name)
+        if not records:
+            raise HTTPException(status_code=404, detail=f"No employment records found for {name}")
+        
+        # Remove MongoDB _id
+        for record in records:
+            if "_id" in record:
+                del record["_id"]
+            
+        return records
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting employment records: {str(e)}")
 
