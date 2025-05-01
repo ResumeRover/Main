@@ -44,3 +44,22 @@ def get_oracle():
         yield oracle
     finally:
         oracle.close()
+
+# Routes
+@router.post("/gpa", response_model=VerificationResponse)
+async def verify_gpa(
+    request: GPAVerificationRequest,
+    oracle: OracleSimulator = Depends(get_oracle)
+):
+    """
+    Verify GPA information against blockchain and university records.
+    """
+    try:
+        result = oracle.verify_and_store_on_blockchain(
+            data=request.dict(),
+            verification_type=VerificationType.GPA
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error verifying GPA: {str(e)}")
+
