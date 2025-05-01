@@ -136,3 +136,25 @@ async def list_verifications(
         raise HTTPException(status_code=500, detail=f"Error listing verifications: {str(e)}")
 
 
+@router.get("/{data_hash}", response_model=Dict[str, Any])
+async def get_verification(
+    data_hash: str,
+    blockchain: BlockchainClient = Depends(get_blockchain)
+):
+    """
+    Get verification details by data hash.
+    """
+    try:
+        if not blockchain.verification_exists(data_hash):
+            raise HTTPException(status_code=404, detail="Verification not found")
+            
+        verification = blockchain.get_verification_status(data_hash)
+        verification["data_hash"] = data_hash
+        
+        return verification
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting verification: {str(e)}")
+
+
