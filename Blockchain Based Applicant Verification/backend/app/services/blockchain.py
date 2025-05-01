@@ -277,3 +277,28 @@ class BlockchainClient:
                 
         return verifications
     
+# Example usage
+if __name__ == "__main__":
+    client = BlockchainClient()
+    
+    # Example: Create data hash
+    data = {
+        "name": "Kalana De Alwis",
+        "university": "NSBM Green University",
+        "gpa": 3.73
+    }
+
+   
+    
+    data_hash = client.create_data_hash(data)
+    print(f"Data hash: {data_hash}")
+    
+    # Check if verification exists
+    exists = client.verification_exists(data_hash)
+    print(f"Verification exists: {exists}")
+    
+    if exists:
+        # Get verification status
+        status = client.get_verification_status(data_hash)
+        print(f"Verification status: {status}")
+    
