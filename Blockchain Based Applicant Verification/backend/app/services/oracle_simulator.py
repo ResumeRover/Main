@@ -223,3 +223,49 @@ class OracleSimulator:
         """Close database connections."""
         if hasattr(self, 'db'):
             self.db.close()
+
+
+# Example usage
+if __name__ == "__main__":
+    oracle = OracleSimulator()
+    
+    print("Oracle simulator initialized")
+    
+    # Example: Verify GPA
+    gpa_data = {
+        "name": "Kalana De Alwis",
+        "university": "NSBM Green University",
+        "gpa": 3.73
+    }
+    
+    print("\nPerforming GPA verification...")
+    gpa_result = oracle.verify_and_store_on_blockchain(gpa_data, VerificationType.GPA)
+    print("\nGPA Verification Result:")
+    print(json.dumps(gpa_result, indent=2))
+    
+    # Example: Verify Degree
+    degree_data = {
+        "name": "Kalana De Alwis",
+        "university": "NSBM Green University",
+        "degree": "BSc in Software Engineering" 
+    }
+    
+    print("\nPerforming Degree verification...")
+    degree_result = oracle.verify_and_store_on_blockchain(degree_data, VerificationType.DEGREE)
+    print("\nDegree Verification Result:")
+    print(json.dumps(degree_result, indent=2))
+    
+    # Example: Verify Employment
+    employment_data = {
+        "name": "Shehani Jayawardena",
+        "company": "99X Technology",
+        "job_title": "ML Engineer"
+    }
+    
+    print("\nPerforming Employment verification...")
+    employment_result = oracle.verify_and_store_on_blockchain(employment_data, VerificationType.EMPLOYMENT)
+    print("\nEmployment Verification Result:")
+    print(json.dumps(employment_result, indent=2))
+    
+    # Close connections
+    oracle.close()
