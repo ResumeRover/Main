@@ -189,4 +189,91 @@ class BlockchainClient:
             tx_hash = self.w3.eth.send_raw_transaction(signed_tx.rawTransaction)
             
             return tx_hash.hex()
+
+    
+    def verification_exists(self, data_hash: str) -> bool:
+        """
+        Check if verification exists for given data hash.
+        
+        Args:
+            data_hash: Hash to check
+            
+        Returns:
+            True if verification exists, False otherwise
+        """
+        # Convert the hex string to bytes32 format
+        bytes32_hash = Web3.to_bytes(hexstr=data_hash)
+        return self.contract.functions.verificationExists(bytes32_hash).call()
+    
+    def get_verification_status(self, data_hash: str) -> Dict[str, Any]:
+        """
+        Get verification status for a data hash.
+        
+        Args:
+            data_hash: Hash of the data to check
+            
+        Returns:
+            Dictionary with verification details or None if not found
+        """
+        try:
+            # Convert the hex string to bytes32 format
+            bytes32_hash = Web3.to_bytes(hexstr=data_hash)
+            
+            # Call contract function
+            result = self.contract.functions.getVerificationStatus(bytes32_hash).call()
+            
+            # Contract returns: isVerified, verificationType, timestamp, oracleAddress, details
+            verification_data = {
+                "is_verified": result[0],
+                "verification_type": VerificationType(result[1]).name,
+                "timestamp": result[2],
+                "oracle_address": result[3],
+                "details": result[4]
+            }
+            
+            return verification_data
+        except Exception as e:
+            # If verification doesn't exist, contract will revert
+            print(f"Error getting verification status: {e}")
+            return None
+    
+    def get_verification_count(self) -> int:
+        """
+        Get total number of verifications stored in contract.
+        
+        Returns:
+            Count of verifications
+        """
+        return self.contract.functions.getVerificationCount().call()
+    
+    def get_all_verifications(self) -> List[Dict[str, Any]]:
+        """
+        Get all verification records from the contract.
+        
+        Returns:
+            List of verification records
+        """
+        verification_count = self.get_verification_count()
+        
+        verifications = []
+        for i in range(verification_count):
+            try:
+                # Get hash at index
+                data_hash_bytes = self.contract.functions.getVerificationHashAtIndex(i).call()
+
+                # Convert the bytes32 value to a hex string
+                data_hash = Web3.to_hex(data_hash_bytes)[2:]  # Remove the '0x' prefix
+                
+                # Get verification data for that hash
+                verification_data = self.get_verification_status(data_hash)
+                
+                if verification_data:
+                    # Add hash to the data
+                    verification_data["data_hash"] = data_hash
+                    verifications.append(verification_data)
+            except Exception as e:
+                print(f"Error fetching verification at index {i}: {e}")
+                continue
+                
+        return verifications
     
