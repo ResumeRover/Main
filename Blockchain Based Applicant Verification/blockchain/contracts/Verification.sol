@@ -30,4 +30,31 @@ contract Verification {
     
     // Authorized oracles that can submit verifications
     mapping(address => bool) public authorizedOracles;
-  
+    
+    // Events
+    event VerificationRequested(bytes32 dataHash, VerificationType verificationType);
+    event VerificationCompleted(bytes32 dataHash, bool result, VerificationType verificationType);
+    event OracleAuthorized(address oracleAddress);
+    event OracleDeauthorized(address oracleAddress);
+    
+    // Modifiers
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only the owner can call this function");
+        _;
+    }
+    
+    modifier onlyAuthorizedOracle() {
+        require(authorizedOracles[msg.sender], "Only authorized oracles can call this function");
+        _;
+    }
+    
+    /**
+     * @dev Constructor
+     */
+    constructor() {
+        owner = msg.sender;
+        // Authorize the contract deployer as the first oracle
+        authorizedOracles[msg.sender] = true;
+        emit OracleAuthorized(msg.sender);
+    }
+      
