@@ -97,3 +97,24 @@ async def verify_employment(
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error verifying employment: {str(e)}")
+    
+@router.get("/status", response_model=BlockchainStatus)
+async def get_blockchain_status(
+    blockchain: BlockchainClient = Depends(get_blockchain)
+):
+    """
+    Get the current blockchain status and verification contract info.
+    """
+    try:
+        block_number = blockchain.w3.eth.block_number
+        verification_count = blockchain.get_verification_count()
+        
+        return {
+            "provider": blockchain.w3.provider.endpoint_uri,
+            "contract_address": blockchain.contract_address,
+            "block_number": block_number,
+            "verification_count": verification_count
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting blockchain status: {str(e)}")
+
