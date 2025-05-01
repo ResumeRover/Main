@@ -46,3 +46,13 @@ async def root():
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy"}
+
+# Run app
+if __name__ == "__main__":
+    import uvicorn
+    
+    host = os.getenv("API_HOST", "localhost")
+    port = int(os.getenv("API_PORT", 8000))
+    
+    print(f"Starting server on {host}:{port}")
+    uvicorn.run("app.main:app", host=host, port=port, reload=True)
