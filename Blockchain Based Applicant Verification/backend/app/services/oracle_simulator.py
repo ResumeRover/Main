@@ -134,4 +134,92 @@ class OracleSimulator:
             job_titles = [r.get("job_title") for r in records]
             return True, f"Verified {name} worked at {company} as: {', '.join(job_titles)}"
     
- 
+    def verify_and_store_on_blockchain(self, 
+                                      data: Dict[str, Any], 
+                                      verification_type: VerificationType) -> Dict[str, Any]:
+        """
+        Verify the data against mock databases and store the result on blockchain.
+        
+        Args:
+            data: Dictionary with data to verify
+            verification_type: Type of verification to perform
+            
+        Returns:
+            Dictionary with verification results and transaction details
+        """
+        # Create hash from data
+        data_hash = self.blockchain.create_data_hash(data)
+        print(f"Generated data hash: {data_hash}")
+        
+        # Check if verification already exists on blockchain
+        exists = self.blockchain.verification_exists(data_hash)
+        print(f"Verification exists: {exists}")
+        
+        if exists:
+            # Get existing verification
+            verification = self.blockchain.get_verification_status(data_hash)
+            verification["data_hash"] = data_hash
+            verification["status"] = "existing"
+            verification["data"] = data
+            return verification
+        
+        # Perform verification based on type
+        print(f"Performing verification of type: {verification_type.name}")
+        if verification_type == VerificationType.GPA:
+            is_verified, details = self.verify_gpa(data)
+        elif verification_type == VerificationType.DEGREE:
+            is_verified, details = self.verify_degree(data)
+        elif verification_type == VerificationType.EMPLOYMENT:
+            is_verified, details = self.verify_employment(data)
+        else:
+            return {
+                "error": f"Unsupported verification type: {verification_type}",
+                "data_hash": data_hash
+            }
+        
+        print(f"Verification result: {is_verified}, Details: {details}")
+        
+        # Simulate oracle delay
+        time.sleep(1)
+        
+        try:
+            # Store result on blockchain
+            tx_hash = self.blockchain.store_verification_result(
+                data_hash=data_hash,
+                is_verified=is_verified,
+                verification_type=verification_type,
+                details=details,
+                account=self.blockchain.default_account  # Explicitly specify the account
+            )
+            
+            print(f"Stored verification on blockchain with tx: {tx_hash}")
+            
+            # Confirm it was stored
+            exists_after = self.blockchain.verification_exists(data_hash)
+            print(f"Verification exists after storing: {exists_after}")
+            
+            # Return result with transaction details
+            return {
+                "data": data,
+                "data_hash": data_hash,
+                "is_verified": is_verified,
+                "verification_type": verification_type.name,
+                "details": details,
+                "timestamp": int(datetime.now().timestamp()),
+                "tx_hash": tx_hash,
+                "status": "new"
+            }
+        except Exception as e:
+            print(f"Error storing verification result: {e}")
+            return {
+                "error": f"Failed to store verification: {str(e)}",
+                "data_hash": data_hash,
+                "is_verified": is_verified,
+                "details": details,
+                "data": data
+            }
+    
+    def close(self):
+        """Close database connections."""
+        if hasattr(self, 'db'):
+            self.db.close()
