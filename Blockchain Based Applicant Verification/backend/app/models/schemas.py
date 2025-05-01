@@ -103,3 +103,33 @@ class BlockchainStatus(BaseModel):
                 "verification_count": 42
             }
         }
+
+class VerificationListResponse(BaseModel):
+    """Response model for listing verifications."""
+    verifications: List[Dict[str, Any]] = Field(..., description="List of verification records")
+    total: int = Field(..., description="Total number of verification records")
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "verifications": [
+                    {
+                        "data_hash": "0x8f2e3c5a2d4b6c8a0e1f3d5b7a9c2e4f6d8a0b2c4e6f8a0c2e4f6d8a0b2c4e6f8",
+                        "is_verified": True,
+                        "verification_type": "GPA",
+                        "details": "Verified GPA of 3.73 for Kalana De Alwis at NSBM Green University",
+                        "timestamp": 1651234567,
+                        "oracle_address": "0x1234567890abcdef1234567890abcdef12345678"
+                    },
+                    {
+                        "data_hash": "0xa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+                        "is_verified": True,
+                        "verification_type": "EMPLOYMENT",
+                        "details": "Verified Shehani Jayawardena worked at 99X Technology as ML Engineer",
+                        "timestamp": 1651234568,
+                        "oracle_address": "0x1234567890abcdef1234567890abcdef12345678"
+                    }
+                ],
+                "total": 2
+            }
+        }
