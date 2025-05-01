@@ -117,4 +117,22 @@ async def get_blockchain_status(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting blockchain status: {str(e)}")
+    
+@router.get("/list", response_model=VerificationListResponse)
+async def list_verifications(
+    blockchain: BlockchainClient = Depends(get_blockchain)
+):
+    """
+    Get a list of all verifications stored on the blockchain.
+    """
+    try:
+        verifications = blockchain.get_all_verifications()
+        
+        return {
+            "verifications": verifications,
+            "total": len(verifications)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error listing verifications: {str(e)}")
+
 
