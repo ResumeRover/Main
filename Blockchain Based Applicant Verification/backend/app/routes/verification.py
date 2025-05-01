@@ -1,1 +1,0 @@
-# GPA, experience, certificate endpoints
