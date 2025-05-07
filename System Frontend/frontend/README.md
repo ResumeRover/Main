@@ -4,6 +4,9 @@ This is the frontend interface for the **Blockchain-Based Applicant Verification
 
 ---
 
+Simple stuff:
+to run d frontend, just hit npm install & npm run dev, then bam!! fk yeah..u r up!
+
 ## 🛠 Tech Stack
 
 - React (Vite)
