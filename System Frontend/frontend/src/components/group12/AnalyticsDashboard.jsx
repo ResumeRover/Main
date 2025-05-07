@@ -1,267 +1,154 @@
-import { useState, useEffect } from 'react';
-import { getAnalyticsData } from '../../services/api';
+import { Box, Button, Typography } from "@mui/material";
+import Header from "./header";
+import StatBox from "./statBox";
+import Plot from "react-plotly.js";
+import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
+import CancelIcon from '@mui/icons-material/Cancel';
+
 
 const AnalyticsDashboard = () => {
-  const [analyticsData, setAnalyticsData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState('month');
-
-  // Mock data for demonstration
-  const mockData = {
-    summary: {
-      totalApplications: 187,
-      processedApplications: 154,
-      verifiedApplications: 89,
-      pendingVerification: 65,
-      avgProcessingTime: '1.8 hours'
-    },
-    applicationTrend: [
-      { date: 'Dec 17', count: 12 },
-      { date: 'Dec 18', count: 15 },
-      { date: 'Dec 19', count: 18 },
-      { date: 'Dec 20', count: 22 },
-      { date: 'Dec 21', count: 17 },
-      { date: 'Dec 22', count: 14 },
-      { date: 'Dec 23', count: 16 }
-    ],
-    verificationStats: {
-      valid: 58,
-      invalid: 22,
-      pending: 65,
-      inProgress: 9,
-      validatedPercent: 37.6,
-      rejectedPercent: 14.3
-    },
-    skillDistribution: [
-      { name: 'Python', count: 42 },
-      { name: 'JavaScript', count: 38 },
-      { name: 'Java', count: 29 },
-      { name: 'React', count: 27 },
-      { name: 'SQL', count: 25 },
-      { name: 'Node.js', count: 20 },
-      { name: 'C#', count: 18 },
-      { name: 'AWS', count: 15 }
-    ],
-    universityDistribution: [
-      { name: 'University of Moratuwa', count: 35 },
-      { name: 'University of Colombo', count: 28 },
-      { name: 'SLIIT', count: 22 },
-      { name: 'NSBM', count: 18 },
-      { name: 'IIT', count: 15 },
-      { name: 'University of Peradeniya', count: 14 },
-      { name: 'Other', count: 55 }
-    ],
-    processingTimeHistory: [
-      { date: 'Dec 17', time: 2.1 },
-      { date: 'Dec 18', time: 1.9 },
-      { date: 'Dec 19', time: 2.0 },
-      { date: 'Dec 20', time: 1.7 },
-      { date: 'Dec 21', time: 1.8 },
-      { date: 'Dec 22', time: 1.6 },
-      { date: 'Dec 23', time: 1.8 }
-    ],
-    recentActivity: [
-      { id: 1, time: '10:45 AM', action: 'Verification completed', user: 'Queen Pluml', status: 'Valid' },
-      { id: 2, time: '10:30 AM', action: 'Document uploaded', user: 'Mark Suckerberg', status: '' },
-      { id: 3, time: '09:58 AM', action: 'Verification completed', user: 'Thanudi', status: 'Pending' },
-      { id: 4, time: '09:45 AM', action: 'Document processing', user: 'Since Johny', status: 'In Progress' },
-      { id: 5, time: '09:20 AM', action: 'Verification completed', user: 'Buri Santoso', status: 'Valid' }
-    ]
-  };
-
-  useEffect(() => {
-    const fetchAnalyticsData = async () => {
-      setLoading(true);
-      try {
-        // In a real app, you would call the API
-        // const data = await getAnalyticsData(timeRange);
-        // setAnalyticsData(data);
-        
-        // Using mock data for demonstration
-        setTimeout(() => {
-          setAnalyticsData(mockData);
-          setLoading(false);
-        }, 800);
-      } catch (err) {
-        console.error('Failed to fetch analytics data:', err);
-        setLoading(false);
-      }
-    };
-
-    fetchAnalyticsData();
-  }, [timeRange]);
-
-  const getStatusColor = (status) => {
-    if (status === 'Valid') return 'text-green-400';
-    if (status === 'Invalid') return 'text-red-400';
-    if (status === 'Pending') return 'text-yellow-400';
-    if (status === 'In Progress') return 'text-blue-400';
-    return '';
-  };
-
-  const renderApplicationTrendChart = () => {
-    if (!analyticsData) return null;
-    
-    const maxCount = Math.max(...analyticsData.applicationTrend.map(item => item.count));
-    
-    return (
-      <div className="flex items-end h-40 gap-1 mt-4">
-        {analyticsData.applicationTrend.map((day, index) => (
-          <div key={index} className="flex flex-col items-center flex-1">
-            <div 
-              className="w-full bg-blue-600 hover:bg-blue-500 rounded-t" 
-              style={{ height: `${(day.count / maxCount) * 100}%` }}
-            ></div>
-            <div className="text-xs mt-1 text-gray-400">{day.date}</div>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  const renderProcessingTimeChart = () => {
-    if (!analyticsData) return null;
-    
-    const maxTime = Math.max(...analyticsData.processingTimeHistory.map(item => item.time));
-    const minTime = Math.min(...analyticsData.processingTimeHistory.map(item => item.time)) * 0.9;
-    
-    return (
-      <div className="relative h-40 mt-4">
-        <svg className="w-full h-full">
-          <polyline
-            points={analyticsData.processingTimeHistory.map((point, index) => {
-              const x = (index / (analyticsData.processingTimeHistory.length - 1)) * 100 + '%';
-              const y = (1 - (point.time - minTime) / (maxTime - minTime)) * 90 + '%';
-              return `${x},${y}`;
-            }).join(' ')}
-            fill="none"
-            stroke="#60a5fa"
-            strokeWidth="2"
-          />
-          {analyticsData.processingTimeHistory.map((point, index) => {
-            const x = (index / (analyticsData.processingTimeHistory.length - 1)) * 100 + '%';
-            const y = (1 - (point.time - minTime) / (maxTime - minTime)) * 90 + '%';
-            return (
-              <circle 
-                key={index} 
-                cx={x} 
-                cy={y} 
-                r="3" 
-                fill="#93c5fd" 
-              />
-            );
-          })}
-        </svg>
-        <div className="absolute bottom-0 left-0 right-0 flex justify-between text-xs text-gray-400">
-          {analyticsData.processingTimeHistory.map((point, index) => (
-            <div key={index}>{point.date}</div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <div className="p-6 bg-gray-900 rounded-lg text-white">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold">Analytics Dashboard</h2>
-        
-        <div>
-          <select
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value)}
-            className="bg-gray-800 border border-gray-700 text-white py-2 px-4 rounded focus:outline-none focus:border-blue-500"
-          >
-            <option value="week">Last 7 days</option>
-            <option value="month">Last 30 days</option>
-            <option value="quarter">Last 90 days</option>
-            <option value="year">This year</option>
-          </select>
-        </div>
-      </div>
+    <Box m="20px">
+      {/* HEADER */}
+      <Box display="flex" justifyContent="space-between" alignItems="center">
+        <Header title="DASHBOARD" subtitle="Resume Analytics Overview" />
+        <Button
+          sx={{
+            backgroundColor: "#1976d2", // Blue
+            color: "#ffffff",
+            fontSize: "14px",
+            fontWeight: "bold",
+            padding: "10px 20px",
+          }}
+        >
+          Download Reports
+        </Button>
+      </Box>
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      ) : analyticsData ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Summary Stats Cards */}
-          <div className="bg-gray-800 p-5 rounded-lg">
-            <h3 className="text-lg font-medium mb-4">Application Summary</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-gray-400 text-sm">Total Applications</div>
-                <div className="text-2xl font-bold">{analyticsData.summary.totalApplications}</div>
-              </div>
-              <div>
-                <div className="text-gray-400 text-sm">Processed</div>
-                <div className="text-2xl font-bold">{analyticsData.summary.processedApplications}</div>
-              </div>
-              <div>
-                <div className="text-gray-400 text-sm">Verified</div>
-                <div className="text-2xl font-bold text-green-400">{analyticsData.summary.verifiedApplications}</div>
-              </div>
-              <div>
-                <div className="text-gray-400 text-sm">Pending</div>
-                <div className="text-2xl font-bold text-yellow-400">{analyticsData.summary.pendingVerification}</div>
-              </div>
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-700">
-              <div className="text-gray-400 text-sm">Avg. Processing Time</div>
-              <div className="text-xl font-medium text-blue-400">{analyticsData.summary.avgProcessingTime}</div>
-            </div>
-          </div>
-          
-          {/* Application Trend */}
-          <div className="bg-gray-800 p-5 rounded-lg">
-            <h3 className="text-lg font-medium mb-2">Application Trend</h3>
-            {renderApplicationTrendChart()}
-          </div>
-          
-          {/* Verification Status */}
-          <div className="bg-gray-800 p-5 rounded-lg">
-            <h3 className="text-lg font-medium mb-4">Verification Status</h3>
-            <div className="relative pt-1">
-              <div className="flex mb-2">
-                <div className={`w-1/4 text-center ${getStatusColor('Valid')}`}>Valid</div>
-                <div className={`w-1/4 text-center ${getStatusColor('Invalid')}`}>Invalid</div>
-                <div className={`w-1/4 text-center ${getStatusColor('Pending')}`}>Pending</div>
-                <div className={`w-1/4 text-center ${getStatusColor('In Progress')}`}>In Progress</div>
-                </div>  
-                <div className="flex mb-2">
-                <div className={`w-1/4 text-center ${getStatusColor('Valid')}`}>{analyticsData.verificationStats.valid}</div>
-                <div className={`w-1/4 text-center ${getStatusColor('Invalid')}`}>{analyticsData.verificationStats.invalid}</div>
-                <div className={`w-1/4 text-center ${getStatusColor('Pending')}`}>{analyticsData.verificationStats.pending}</div>  
-                <div className={`w-1/4 text-center ${getStatusColor('In Progress')}`}>{analyticsData.verificationStats.inProgress}</div>
-                </div>  
-                <div className="flex mb-2">
-                <div className={`w-1/4 text-center ${getStatusColor('Valid')}`}>Verified</div>  
-                <div className={`w-1/4 text-center ${getStatusColor('Invalid')}`}>Rejected</div>
-                <div className={`w-1/4 text-center ${getStatusColor('Pending')}`}>Pending</div>
-                <div className={`w-1/4 text-center ${getStatusColor('In Progress')}`}>In Progress</div>
-                </div>  
-                <div className="flex mb-2">
-                <div className={`w-1/4 text-center ${getStatusColor('Valid')}`}>{analyticsData.verificationStats.validatedPercent}%</div>
-                <div className={`w-1/4 text-center ${getStatusColor('Invalid')}`}>{analyticsData.verificationStats.rejectedPercent}%</div>
-                <div className={`w-1/4 text-center ${getStatusColor('Pending')}`}>{analyticsData.verificationStats.pending}</div>
-                <div className={`w-1/4 text-center ${getStatusColor('In Progress')}`}>{analyticsData.verificationStats.inProgress}</div>
-                </div>
-                            </div>  
-                        </div> 
-            
-                      {/* Processing Time Chart */}
-                      <div className="bg-gray-800 p-5 rounded-lg">
-                        <h3 className="text-lg font-medium mb-2">Processing Time History</h3>
-                        {renderProcessingTimeChart()}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center text-gray-400">No data available</div>
-                  )}
-                </div>
-              );
-            };
-            
-            export default AnalyticsDashboard;
-            
+      {/* STATS */}
+      <Box display="grid" gridTemplateColumns="repeat(12, 1fr)" gap="20px">
+        <Box gridColumn="span 3" bgcolor="#1e1e2f" display="flex" alignItems="center" justifyContent="center" p="10px">
+          <StatBox title="325" subtitle="CVs Passed" icon={<AssignmentTurnedInIcon sx={{ color: "#4caf50", fontSize: "26px" }} />} />
+        </Box>
+        <Box gridColumn="span 3" bgcolor="#1e1e2f" display="flex" alignItems="center" justifyContent="center">
+          <StatBox title="512" subtitle="CVs Submitted" icon={<UploadFileIcon sx={{ color: "#4caf50", fontSize: "26px" }} />} />
+        </Box>
+        <Box gridColumn="span 3" bgcolor="#1e1e2f" display="flex" alignItems="center" justifyContent="center">
+          <StatBox title="480" subtitle="CVs Processed" icon={<SettingsSuggestIcon sx={{ color: "#4caf50", fontSize: "26px" }} />} />
+        </Box>
+        <Box gridColumn="span 3" bgcolor="#1e1e2f" display="flex" alignItems="center" justifyContent="center">
+          <StatBox title="187" subtitle="CVs Rejected" icon={<CancelIcon sx={{ color: "#f44336", fontSize: "26px" }} />} />
+        </Box>
+
+        {/* Resume Score Distribution - Bar Chart */}
+        <Box gridColumn="span 12" bgcolor="#1e1e2f" p="20px">
+          <Typography variant="h5" fontWeight="600" color="#ffffff" mb={2}>
+            Resume Score Distribution
+          </Typography>
+          <Plot
+            data={[{
+              type: 'bar',
+              x: ['0-20', '21-40', '41-60', '61-80', '81-100'],
+              y: [5, 15, 30, 25, 10],
+              marker: { color: "#42a5f5" },
+            }]}
+            layout={{
+              autosize: true,
+              margin: { t: 20 },
+              paper_bgcolor: "#1e1e2f",
+              plot_bgcolor: "#1e1e2f",
+              font: { color: "#ffffff" },
+            }}
+            style={{ width: "100%", height: "300px" }}
+          />
+        </Box>
+
+        {/* Experience & Degree - Pie Charts */}
+        <Box gridColumn="span 6" bgcolor="#1e1e2f" p="20px">
+          <Typography variant="h5" fontWeight="600" color="#ffffff" mb={2}>
+            Candidates by Experience Level (Years)
+          </Typography>
+          <Plot
+            data={[{
+              type: 'pie',
+              values: [20, 45, 25, 10],
+              labels: ['0-1', '2-4', '5-8', '9+'],
+              textinfo: "label+percent",
+              marker: { colors: ['#66bb6a', '#42a5f5', '#ef5350', '#ab47bc'] }
+            }]}
+            layout={{
+              autosize: true,
+              paper_bgcolor: "#1e1e2f",
+              font: { color: "#ffffff" },
+              margin: { t: 0, b: 0 },
+              legend: {
+                x: -0.1,
+                y: 0.5,
+                xanchor: 'right',
+                orientation: 'v',
+                font: { color: "#ffffff" },
+              },
+            }}
+            style={{ width: "100%", height: "300px" }}
+          />
+        </Box>
+        <Box gridColumn="span 6" bgcolor="#1e1e2f" p="20px">
+          <Typography variant="h5" fontWeight="600" color="#ffffff" mb={2}>
+            Candidates by Degree
+          </Typography>
+          <Plot
+            data={[{
+              type: 'pie',
+              values: [50, 30, 10, 10],
+              labels: ['Bachelors', 'Masters', 'Diploma', 'Other'],
+              textinfo: "label+percent",
+              marker: { colors: ['#ffb74d', '#4db6ac', '#7986cb', '#90a4ae'] }
+            }]}
+            layout={{
+              autosize: true,
+              paper_bgcolor: "#1e1e2f",
+              font: { color: "#ffffff" },
+              margin: { t: 0, b: 0 },
+              legend: {
+                x: -0.1,
+                y: 0.5,
+                xanchor: 'right',
+                orientation: 'v',
+                font: { color: "#ffffff" },
+              },
+            }}
+            style={{ width: "100%", height: "300px" }}
+          />
+        </Box>
+
+        {/* Candidates by Skill - Horizontal Bar */}
+        <Box gridColumn="span 12" bgcolor="#1e1e2f" p="20px">
+          <Typography variant="h5" fontWeight="600" color="#ffffff" mb={2}>
+            Candidates by Skill
+          </Typography>
+          <Plot
+            data={[{
+              type: 'bar',
+              x: [40, 35, 30, 25, 15],
+              y: ['JavaScript', 'Python', 'React', 'Java', 'SQL'],
+              orientation: 'h',
+              marker: { color: "#81c784" },
+            }]}
+            layout={{
+              autosize: true,
+              paper_bgcolor: "#1e1e2f",
+              plot_bgcolor: "#1e1e2f",
+              font: { color: "#ffffff" },
+              margin: { l: 100, r: 20, t: 20, b: 30 },
+            }}
+            style={{ width: "100%", height: "300px" }}
+          />
+        </Box>
+      </Box>
+    </Box>
+  );
+};
+
+export default AnalyticsDashboard;
