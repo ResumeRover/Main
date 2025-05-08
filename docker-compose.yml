@@ -1,0 +1,180 @@
+# Resume Parser Microservices Docker Compose
+# Created: 2025-05-08 20:20:51 UTC
+# Author: ashiduDissanayake
+
+version: '3.8'
+
+services:
+  # API Gateway - main entry point for all client requests
+  api_gateway:
+    build: ./api_gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=true
+      - AUTH_SERVICE_URL=http://auth_service:8001
+      # - UPLOAD_SERVICE_URL=http://upload_service:8002
+      # - PARSER_SERVICE_URL=http://parser_service:8003
+      # - DATA_SERVICE_URL=http://data_service:8004
+      # - JOBS_SERVICE_URL=http://jobs_service:8005
+      # - SEARCH_SERVICE_URL=http://search_service:8006
+      # - USER_SERVICE_URL=http://user_service:8007
+      - JWT_SECRET_KEY=resume_parser
+      - RATE_LIMIT_PER_MINUTE=100
+    volumes:
+      - ./api_gateway:/app
+    depends_on:
+      - auth_service
+      # - upload_service
+      # - parser_service
+      # - data_service
+      # - jobs_service
+      # - search_service
+    networks:
+      - resume_parser_network
+    restart: unless-stopped
+
+  # Auth Service - handles authentication and authorization
+  auth_service:
+    build: 
+      context: ./mock_services
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - SERVICE_NAME=auth_service
+      - PORT=8001
+      - MONGO_URI=mongodb://mongo:27017/resume_parser
+      - JWT_SECRET_KEY=your-secret-key-for-development-only
+    volumes:
+      - ./mock_services:/app
+    depends_on:
+      # - mongo
+    networks:
+      - resume_parser_network
+    restart: unless-stopped
+
+  # # Resume Upload Service - handles file uploads
+  # upload_service:
+  #   build: 
+  #     context: ./mock_services
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "8002:8002"
+  #   environment:
+  #     - SERVICE_NAME=upload_service
+  #     - PORT=8002
+  #     - MONGO_URI=mongodb://mongo:27017/resume_parser
+  #     - UPLOAD_DIR=/app/uploads
+  #   volumes:
+  #     - ./mock_services:/app
+  #     - resume_uploads:/app/uploads
+  #   depends_on:
+  #     - mongo
+  #   networks:
+  #     - resume_parser_network
+  #   restart: unless-stopped
+
+  # # Resume Parser Service - extracts data from resumes
+  # parser_service:
+  #   build: 
+  #     context: ./mock_services
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "8003:8003"
+  #   environment:
+  #     - SERVICE_NAME=parser_service
+  #     - PORT=8003
+  #     - MONGO_URI=mongodb://mongo:27017/resume_parser
+  #   volumes:
+  #     - ./mock_services:/app
+  #     - resume_uploads:/app/uploads
+  #   depends_on:
+  #     - mongo
+  #   networks:
+  #     - resume_parser_network
+  #   restart: unless-stopped
+
+  # # Resume Data Service - stores and retrieves parsed data
+  # data_service:
+  #   build: 
+  #     context: ./mock_services
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "8004:8004"
+  #   environment:
+  #     - SERVICE_NAME=data_service
+  #     - PORT=8004
+  #     - MONGO_URI=mongodb://mongo:27017/resume_parser
+  #   volumes:
+  #     - ./mock_services:/app
+  #   depends_on:
+  #     - mongo
+  #   networks:
+  #     - resume_parser_network
+  #   restart: unless-stopped
+
+  # # Jobs Service - manages job listings and matching
+  # jobs_service:
+  #   build: 
+  #     context: ./mock_services
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "8005:8005"
+  #   environment:
+  #     - SERVICE_NAME=jobs_service
+  #     - PORT=8005
+  #     - MONGO_URI=mongodb://mongo:27017/resume_parser
+  #   volumes:
+  #     - ./mock_services:/app
+  #   depends_on:
+  #     - mongo
+  #   networks:
+  #     - resume_parser_network
+  #   restart: unless-stopped
+
+  # # Search Service - handles search functionality
+  # search_service:
+  #   build: 
+  #     context: ./mock_services
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "8006:8006"
+  #   environment:
+  #     - SERVICE_NAME=search_service
+  #     - PORT=8006
+  #     - MONGO_URI=mongodb://mongo:27017/resume_parser
+  #   volumes:
+  #     - ./mock_services:/app
+  #   depends_on:
+  #     - mongo
+  #   networks:
+  #     - resume_parser_network
+  #   restart: unless-stopped
+
+  # # User Service - manages user profiles
+  # user_service:
+  #   build: 
+  #     context: ./mock_services
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "8007:8007"
+  #   environment:
+  #     - SERVICE_NAME=user_service
+  #     - PORT=8007
+  #     - MONGO_URI=mongodb://mongo:27017/resume_parser
+  #   volumes:
+  #     - ./mock_services:/app
+  #   depends_on:
+  #     - mongo
+  #   networks:
+  #     - resume_parser_network
+  #   restart: unless-stopped
+
+networks:
+  resume_parser_network:
+    driver: bridge
+
+volumes:
+  mongo_data:
+  resume_uploads:
