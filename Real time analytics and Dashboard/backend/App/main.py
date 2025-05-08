@@ -1,5 +1,5 @@
 # main.py
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect,HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import APIRouter,Path
 from pymongo import MongoClient
@@ -149,3 +149,26 @@ def get_skill_distribution(job_role: str = Path(..., description="Job role name"
             skill_counts[skill_normalized] += 1
 
     return dict(skill_counts.most_common()) 
+
+@app.get("/candidates/by-job/{job_role}")
+def get_candidates_by_job(job_role: str = Path(..., description="Job role name")):
+    job_id = get_job_id_by_role(job_role)
+    candidates = collection.find({"job_id": job_id})
+    result = []
+
+    for c in candidates:
+        result.append({
+            "id": str(c["_id"]),
+            "name": c.get("name"),
+            "email": c.get("email"),
+            "phone": c.get("phone"),
+            "skills": c.get("skills", []),
+            "education": c.get("education", []),
+            "work_experience": c.get("work_experience", []),
+            "upload_date": c.get("upload_date")
+        })
+
+    if not result:
+        raise HTTPException(status_code=404, detail="No candidates found for this job")
+
+    return result
