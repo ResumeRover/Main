@@ -4,6 +4,9 @@
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^7.1.0",
     "@mui/material": "^7.1.0",
+    "dotenv": "^16.5.0",
+    "mongodb": "^6.16.0",
+    "nodemailer": "^7.0.3",
     "plotly.js": "^3.0.1",
     "react-plotly.js": "^2.6.0"
   }
