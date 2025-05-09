@@ -1,0 +1,14 @@
+{
+    "IsEncrypted": false,
+    "Values": {
+      "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+      "FUNCTIONS_WORKER_RUNTIME": "python",
+      "MONGODB_URI": "mongodb+srv://ashidudissanayake1:chP0CyGcYR89zDeg@cluster0.4dg71cd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
+      "SECRET_KEY": "your_secret_key_here",
+      "ACCESS_TOKEN_EXPIRE_MINUTES": "300",
+      "RESUME_SERVICE_URL": "https://your-resume-service.azurewebsites.net/api",
+      "RESUME_SERVICE_KEY": "your-resume-service-function-key",
+      "JOBS_SERVICE_URL": "https://your-jobs-service.azurewebsites.net/api",
+      "JOBS_SERVICE_KEY": "00000000000000000000000094F7DF24"
+    }
+  }
