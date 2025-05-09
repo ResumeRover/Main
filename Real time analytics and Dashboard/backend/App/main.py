@@ -1,24 +1,25 @@
 # main.py
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect,HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Path,HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import APIRouter,Path
 from pymongo import MongoClient
 from config import MONGO_URL, DB_NAME, COLLECTION_NAME
 from datetime import datetime
 from collections import Counter
-#from db import collection
 
 app = FastAPI()
-origins = [""] 
 
-client = MongoClient(MONGO_URL)
-db = client[DB_NAME]
-collection = db[COLLECTION_NAME]
-job_collection = db['jobs']
+# CORS setup
+origins = ["*"]  # Update with your frontend URL in production
 
-app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-connected_clients = []
+
 
 '''@app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -32,6 +33,14 @@ async def websocket_endpoint(websocket: WebSocket):
                 await client.send_text(f"New: {data}")
     except WebSocketDisconnect:
         connected_clients.remove(websocket)'''
+
+client = MongoClient(MONGO_URL)
+db = client[DB_NAME]
+collection = db[COLLECTION_NAME]
+job_collection = db["jobs"]
+
+# WebSocket clients (optional, uncomment to use)
+connected_clients = []
 
 def get_job_id_by_role(role: str):
     job = job_collection.find_one({"title": role}, {"_id": 1})
@@ -135,6 +144,10 @@ def get_degree_distribution(job_role: str = Path(..., description="Job role name
                 counters["Other"] += 1
     return counters
 
+@app.get("/jobs/titles")
+async def get_job_titles():
+    titles = job_collection.distinct("title")
+    return {"titles": titles}
 
 @app.get("/stats/skill-distribution/{job_role}")
 def get_skill_distribution(job_role: str = Path(..., description="Job role name")):
