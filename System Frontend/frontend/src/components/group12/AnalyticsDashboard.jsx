@@ -53,14 +53,16 @@ const AnalyticsDashboard = () => {
       setLoading(true);
       setHasSearched(true);
 
-      const [summaryRes, scoreRes, experienceRes, degreeRes, skillsRes] = await Promise.all([
+      const [summaryRes, scoreRes, experienceRes, degreeRes, skillsRes, candidatesRes] = await Promise.all([
         api.get(`/stats/summary/${role}`),
         api.get(`/stats/score-distribution/${role}`),
         api.get(`/stats/experience-distribution/${role}`),
         api.get(`/stats/degree-distribution/${role}`),
         api.get(`/stats/skill-distribution/${role}`),
+        api.get(`/candidates/score-buckets/${role}`),
+        
       ]);
-
+      setCandidates(candidatesRes.data);
       const transformedData = {
         title: role,
         stats: {
@@ -89,53 +91,63 @@ const AnalyticsDashboard = () => {
 
       setJobData(transformedData);
       
-      // Fetch candidates for each score range from backend
-      const scoreRanges = Object.keys(scoreRes.data);
-      const candidatesData = {};
+      // Generate mock candidates for each score range
+      const mockCandidates = {
+        "0-20": [
+          { name: "John Doe", education: "Bachelors in CS", experience: "2 years", cvLink: "#", score: 15 },
+          { name: "Jane Smith", education: "High School", experience: "0 years", cvLink: "#", score: 10 }
+        ],
+        "21-40": [
+          { name: "Alice Johnson", education: "Associate Degree", experience: "1 year", cvLink: "#", score: 35 },
+          { name: "Bob Brown", education: "Bachelors in IT", experience: "1.5 years", cvLink: "#", score: 30 }
+        ],
+        "41-60": [
+          { name: "Charlie Davis", education: "Bachelors in CS", experience: "3 years", cvLink: "#", score: 55 },
+          { name: "Diana Evans", education: "Masters in IT", experience: "2 years", cvLink: "#", score: 45 }
+        ],
+        "61-80": [
+          { name: "Ethan Foster", education: "Masters in CS", experience: "5 years", cvLink: "#", score: 75 },
+          { name: "Fiona Green", education: "PhD in CS", experience: "3 years", cvLink: "#", score: 65 }
+        ],
+        "81-100": [
+          { name: "George Harris", education: "PhD in AI", experience: "8 years", cvLink: "#", score: 90 },
+          { name: "Hannah Irving", education: "Masters in ML", experience: "6 years", cvLink: "#", score: 85 }
+        ]
+      };
       
-      for (const range of scoreRanges) {
-        try {
-          // This assumes you have a backend endpoint that returns candidates by score range
-          const response = await api.get(`/candidates/by-score/${role}/${range}`);
-          candidatesData[range] = response.data.candidates || [];
-        } catch (error) {
-          console.error(`Error fetching candidates for range ${range}:`, error);
-          candidatesData[range] = [];
-        }
-      }
-      
-      setCandidates(candidatesData);
+      //setCandidates(mockCandidates);
 
     } catch (error) {
       console.error("Error fetching job data:", error);
-      // Fallback to empty data structure if API fails
-      const emptyData = {
+      const dummyData = {
         title: role,
         stats: {
-          cvsPassed: 0,
-          cvsSubmitted: 0,
-          cvsProcessed: 0,
-          cvsRejected: 0,
+          cvsPassed: Math.floor(Math.random() * 500),
+          cvsSubmitted: Math.floor(Math.random() * 800),
+          cvsProcessed: Math.floor(Math.random() * 700),
+          cvsRejected: Math.floor(Math.random() * 300),
         },
         resumeScores: {
           labels: ["0-20", "21-40", "41-60", "61-80", "81-100"],
-          values: [0, 0, 0, 0, 0],
+          values: [5, 15, 30, 25, 10].map(v => Math.floor(v * (1 + Math.random() * 0.5))),
         },
         experience: {
           labels: ["0-1", "2-4", "5-8", "9+"],
-          values: [0, 0, 0, 0],
+          values: [20, 45, 25, 10].map(v => Math.floor(v * (1 + Math.random() * 0.5))),
         },
         degree: {
           labels: ["Bachelors", "Masters", "Diploma", "PhD", "Other"],
-          values: [0, 0, 0, 0, 0],
+          values: [50, 30, 10, 5, 5].map(v => Math.floor(v * (1 + Math.random() * 0.5))),
         },
         skills: {
-          labels: [],
-          values: [],
+          labels: ["JavaScript", "Python", "React", "Java", "SQL"],
+          values: [50, 40, 30, 20, 10].map(v => Math.floor(v * (1 + Math.random() * 0.5))),
         }
       };
-      setJobData(emptyData);
-      setCandidates({});
+      setJobData(dummyData);
+      setCandidates({
+        "0-20": [{ name: "Test Candidate", education: "Test", experience: "0 years", cvLink: "#", score: 10 }]
+      });
     } finally {
       setLoading(false);
     }
@@ -162,7 +174,10 @@ const AnalyticsDashboard = () => {
     const clickedBarIndex = data.points[0].pointIndex;
     const scoreRange = jobData.resumeScores.labels[clickedBarIndex];
     
-    if (candidates[scoreRange] && candidates[scoreRange].length > 0) {
+    console.log("Selected score range:", scoreRange);
+    console.log("Available candidates:", candidates[scoreRange]);
+  
+    if (candidates[scoreRange]) {
       setSelectedScoreRange(scoreRange);
       setModalOpen(true);
     } else {
@@ -417,53 +432,56 @@ const AnalyticsDashboard = () => {
                     })}
                   </Box>
 
-                  {/* Resume Score Distribution - Bar Chart */}
-                  <Box gridColumn="span 12" p="20px">
-                    <Typography variant="h5" fontWeight="600" mb={2}>
-                      Resume Score Distribution
-                    </Typography>
-                    <Plot
-                      data={[
-                        {
-                          type: "bar",
-                          x: jobData.resumeScores.labels,
-                          y: jobData.resumeScores.values,
-                          marker: { color: "#42a5f5" },
-                        },
-                      ]}
-                      layout={{
-                        autosize: true,
-                        margin: { t: 20 },
-                        paper_bgcolor: "#1e1e2f",
-                        plot_bgcolor: "#1e1e2f",
-                        font: { color: "#ffffff" },
-                        title: "",
-                      }}
-                      style={{ width: "100%", height: "300px" }}
-                      config={{
-                        displayModeBar: true,
-                        responsive: true,
-                      }}
-                      onClick={handleBarClick}
-                    />
+                
+{/* Resume Score Distribution - Bar Chart */}
+<Box gridColumn="span 12" p="20px">
+  <Typography variant="h5" fontWeight="600" mb={2}>
+    Resume Score Distribution
+  </Typography>
+  <Plot
+    data={[
+      {
+        type: "bar",
+        x: jobData.resumeScores.labels,
+        y: jobData.resumeScores.values,
+        marker: { color: "#42a5f5" },
+      },
+    ]}
+    layout={{
+      autosize: true,
+      margin: { t: 20 },
+      paper_bgcolor: "#1e1e2f",
+      plot_bgcolor: "#1e1e2f",
+      font: { color: "#ffffff" },
+      title: "",
+    }}
+    style={{ width: "100%", height: "300px" }}
+    config={{
+      displayModeBar: true,
+      responsive: true,
+    }}
+  />
 
-                    {/* Score Range Buttons */}
-                    <Box display="flex" justifyContent="center" gap={4} mt={0.5}>
-                      {jobData.resumeScores.labels.map((range) => (
-                        <Button
-                          key={range}
-                          variant="contained"
-                          onClick={() => {
-                            setSelectedScoreRange(range);
-                            setModalOpen(true);
-                          }}
-                          sx={{ backgroundColor: "#1976d2", color: "#fff", fontWeight: "bold" }}
-                        >
-                          {range}
-                        </Button>
-                      ))}
-                    </Box>
-                  </Box>
+  {/* Score Range Buttons - closer and more spaced out */}
+  <Box display="flex" justifyContent="center" gap={4} mt={0.5}>
+    {["0-20", "21-40", "41-60", "61-80", "81-100"].map((range) => (
+      <Button
+        key={range}
+        variant="contained"
+        onClick={() => {
+          setSelectedScoreRange(range);
+          setModalOpen(true);
+        }}
+        sx={{ backgroundColor: "#1976d2", color: "#fff", fontWeight: "bold" }}
+      >
+        {range}
+      </Button>
+    ))}
+  </Box>
+</Box>
+
+
+
 
                   {/* Experience Level - Pie Chart */}
                   <Box gridColumn="span 6" p="20px">
