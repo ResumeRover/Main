@@ -5,6 +5,7 @@ from pymongo import MongoClient
 from config import MONGO_URL, DB_NAME, COLLECTION_NAME
 from datetime import datetime
 from collections import Counter
+from bson.decimal128 import Decimal128
 
 app = FastAPI()
 
@@ -18,8 +19,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
 
 '''@app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -73,8 +72,9 @@ def get_score_distribution(job_role: str = Path(..., description="Job role name"
         return {"error": f"Job role '{job_role}' not found"}
 
     bins = {"0-20": 0, "21-40": 0, "41-60": 0, "61-80": 0, "81-100": 0}
-    for doc in collection.find({"job_id": job_id}, {"score": 1}):
-        score = doc.get("score", 0)
+    for doc in collection.find({"job_id": job_id}, {"ranking_score": 1}):
+        score = doc.get("ranking_score", 0)
+        score = float(score.to_decimal()) if isinstance(score, Decimal128) else score
         if score <= 20:
             bins["0-20"] += 1
         elif score <= 40:
