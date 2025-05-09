@@ -1,0 +1,8 @@
+.MuiModal-root {
+    position: fixed !important;
+    z-index: 1300 !important;
+  }
+  
+  .MuiBackdrop-root {
+    background-color: rgba(0, 0, 0, 0.8) !important;
+  }

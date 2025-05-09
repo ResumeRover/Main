@@ -16,25 +16,21 @@ import axios from "axios";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 
-// Initialize axios with base URL
 const api = axios.create({
-  baseURL: "http://localhost:8000", // Update with your backend URL
+  baseURL: "http://localhost:8000",
 });
 
 const AnalyticsDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
-  const [jobData, setJobData] = useState(() => {
-    const stored = localStorage.getItem("jobData");
-    return stored ? JSON.parse(stored) : null;
-  });
+  const [jobData, setJobData] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedBarIndex, setSelectedBarIndex] = useState(null);
-  const [candidates, setCandidates] = useState([]);
+  const [selectedScoreRange, setSelectedScoreRange] = useState("");
+  const [candidates, setCandidates] = useState({});
   const [jobRoles, setJobRoles] = useState([]);
   const [loadingRoles, setLoadingRoles] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
-  // Fetch available job roles when component mounts
   useEffect(() => {
     const fetchJobRoles = async () => {
       try {
@@ -43,7 +39,6 @@ const AnalyticsDashboard = () => {
         setJobRoles(response.data.titles);
       } catch (error) {
         console.error("Error fetching job roles:", error);
-        // Fallback to some default roles if API fails
         setJobRoles(["SSE", "Software Engineer", "Data Scientist"]);
       } finally {
         setLoadingRoles(false);
@@ -56,16 +51,18 @@ const AnalyticsDashboard = () => {
   const fetchJobData = async (role) => {
     try {
       setLoading(true);
-      
-      // Fetch all data in parallel
-      const [summaryRes, scoreRes, experienceRes, degreeRes] = await Promise.all([
+      setHasSearched(true);
+
+      const [summaryRes, scoreRes, experienceRes, degreeRes, skillsRes, candidatesRes] = await Promise.all([
         api.get(`/stats/summary/${role}`),
         api.get(`/stats/score-distribution/${role}`),
         api.get(`/stats/experience-distribution/${role}`),
         api.get(`/stats/degree-distribution/${role}`),
+        api.get(`/stats/skill-distribution/${role}`),
+        api.get(`/candidates/score-buckets/${role}`),
+        
       ]);
-
-      // Transform data to match frontend format
+      setCandidates(candidatesRes.data);
       const transformedData = {
         title: role,
         stats: {
@@ -86,22 +83,42 @@ const AnalyticsDashboard = () => {
           labels: Object.keys(degreeRes.data),
           values: Object.values(degreeRes.data),
         },
+        skills: {
+          labels: Object.keys(skillsRes.data),
+          values: Object.values(skillsRes.data),
+        }
       };
 
       setJobData(transformedData);
-      localStorage.setItem("jobData", JSON.stringify(transformedData));
       
-      // For demo purposes - in a real app you would fetch actual candidates
-      setCandidates([
-        { name: "John Doe", education: "Bachelors in CS", experience: "2 years", cvLink: "#" },
-        { name: "Jane Smith", education: "Masters in AI", experience: "4 years", cvLink: "#" },
-        { name: "Alice Johnson", education: "Diploma in IT", experience: "1 year", cvLink: "#" },
-        { name: "Bob Brown", education: "PhD in ML", experience: "6 years", cvLink: "#" },
-      ]);
+      // Generate mock candidates for each score range
+      const mockCandidates = {
+        "0-20": [
+          { name: "John Doe", education: "Bachelors in CS", experience: "2 years", cvLink: "#", score: 15 },
+          { name: "Jane Smith", education: "High School", experience: "0 years", cvLink: "#", score: 10 }
+        ],
+        "21-40": [
+          { name: "Alice Johnson", education: "Associate Degree", experience: "1 year", cvLink: "#", score: 35 },
+          { name: "Bob Brown", education: "Bachelors in IT", experience: "1.5 years", cvLink: "#", score: 30 }
+        ],
+        "41-60": [
+          { name: "Charlie Davis", education: "Bachelors in CS", experience: "3 years", cvLink: "#", score: 55 },
+          { name: "Diana Evans", education: "Masters in IT", experience: "2 years", cvLink: "#", score: 45 }
+        ],
+        "61-80": [
+          { name: "Ethan Foster", education: "Masters in CS", experience: "5 years", cvLink: "#", score: 75 },
+          { name: "Fiona Green", education: "PhD in CS", experience: "3 years", cvLink: "#", score: 65 }
+        ],
+        "81-100": [
+          { name: "George Harris", education: "PhD in AI", experience: "8 years", cvLink: "#", score: 90 },
+          { name: "Hannah Irving", education: "Masters in ML", experience: "6 years", cvLink: "#", score: 85 }
+        ]
+      };
       
+      //setCandidates(mockCandidates);
+
     } catch (error) {
       console.error("Error fetching job data:", error);
-      // Fallback to dummy data if API fails
       const dummyData = {
         title: role,
         stats: {
@@ -122,8 +139,15 @@ const AnalyticsDashboard = () => {
           labels: ["Bachelors", "Masters", "Diploma", "PhD", "Other"],
           values: [50, 30, 10, 5, 5].map(v => Math.floor(v * (1 + Math.random() * 0.5))),
         },
+        skills: {
+          labels: ["JavaScript", "Python", "React", "Java", "SQL"],
+          values: [50, 40, 30, 20, 10].map(v => Math.floor(v * (1 + Math.random() * 0.5))),
+        }
       };
       setJobData(dummyData);
+      setCandidates({
+        "0-20": [{ name: "Test Candidate", education: "Test", experience: "0 years", cvLink: "#", score: 10 }]
+      });
     } finally {
       setLoading(false);
     }
@@ -137,20 +161,33 @@ const AnalyticsDashboard = () => {
     if (matchedRole) {
       fetchJobData(matchedRole);
     } else {
-      // Optionally show error message to user
       console.warn("No matching job role found");
     }
   };
 
-  const handleBarClick = (event) => {
-    const barIndex = event.points[0].pointIndex;
-    setSelectedBarIndex(barIndex);
-    setModalOpen(true);
+  const handleBarClick = (data) => {
+    if (!jobData || !jobData.resumeScores) {
+      console.error("Job data not loaded yet");
+      return;
+    }
+  
+    const clickedBarIndex = data.points[0].pointIndex;
+    const scoreRange = jobData.resumeScores.labels[clickedBarIndex];
+    
+    console.log("Selected score range:", scoreRange);
+    console.log("Available candidates:", candidates[scoreRange]);
+  
+    if (candidates[scoreRange]) {
+      setSelectedScoreRange(scoreRange);
+      setModalOpen(true);
+    } else {
+      console.warn("No candidates found for score range:", scoreRange);
+    }
   };
 
   const handleCloseModal = () => {
     setModalOpen(false);
-    setSelectedBarIndex(null);
+    setSelectedScoreRange("");
   };
 
   const exportToPDF = () => {
@@ -175,295 +212,428 @@ const AnalyticsDashboard = () => {
 
   return (
     <Box m="20px">
-      {/* Search Autocomplete */}
-      <Box display="flex" justifyContent="center" alignItems="center" mb={4}>
-        <Autocomplete
-          freeSolo
-          options={jobRoles}
-          inputValue={searchTerm}
-          onInputChange={(event, newInputValue) => setSearchTerm(newInputValue)}
-          sx={{ width: 500, backgroundColor: "#fff", borderRadius: "5px" }}
-          loading={loadingRoles}
-          renderInput={(params) => (
-            <TextField 
-              {...params} 
-              label="Search Job Role" 
-              variant="outlined"
-              InputProps={{
-                ...params.InputProps,
-                endAdornment: (
-                  <>
-                    {loadingRoles ? <CircularProgress color="inherit" size={20} /> : null}
-                    {params.InputProps.endAdornment}
-                  </>
-                ),
-              }}
-            />
-          )}
-        />
-        <Button
-          onClick={handleSearch}
-          disabled={loadingRoles}
-          sx={{
-            ml: 2,
-            backgroundColor: "#1976d2",
-            color: "#ffffff",
-            fontWeight: "bold",
-            padding: "10px 20px",
-            "&:disabled": {
-              backgroundColor: "#cccccc",
-            }
-          }}
+      {/* Initial state - centered search bar */}
+      {!hasSearched && (
+        <Box 
+          display="flex" 
+          flexDirection="column" 
+          justifyContent="center" 
+          alignItems="center" 
+          height="70vh"
         >
-          Search
-        </Button>
-      </Box>
-
-      {/* Loading Indicator */}
-      {loading && (
-        <Box display="flex" justifyContent="center" alignItems="center" mt={4}>
-          <CircularProgress />
-        </Box>
-      )}
-
-      {/* Display Content */}
-      {!loading && jobData && (
-        <>
-          <div id="report-content">
-            <Card sx={{ mt: 4, bgcolor: "#1e1e2f", color: "#ffffff" }}>
-              <CardContent>
-                {/* HEADER */}
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-                  <Typography variant="h4" fontWeight="600">
-                    {jobData.title} Analytics Report
-                  </Typography>
-                  <Typography variant="subtitle1">
-                    Generated on: {new Date().toLocaleDateString()}
-                  </Typography>
-                </Box>
-
-                {/* STATS - With Circular Progress */}
-                <Box display="grid" gridTemplateColumns="repeat(12, 1fr)" gap="20px" mb={4}>
-                  {[
-                    {
-                      label: "CVs Passed",
-                      value: jobData.stats.cvsPassed,
-                      color: "#66bb6a",
-                    },
-                    {
-                      label: "CVs Processed",
-                      value: jobData.stats.cvsProcessed,
-                      color: "#42a5f5",
-                    },
-                    {
-                      label: "CVs Rejected",
-                      value: jobData.stats.cvsRejected,
-                      color: "#ef5350",
-                    },
-                    {
-                      label: "CVs Submitted",
-                      value: jobData.stats.cvsSubmitted,
-                      color: "#ffa726",
-                    },
-                  ].map((stat, index) => {
-                    const percent =
-                      stat.label === "CVs Submitted"
-                        ? 100
-                        : Math.min(
-                            (stat.value / jobData.stats.cvsSubmitted) * 100,
-                            100
-                          );
-
-                    return (
-                      <Box
-                        key={index}
-                        gridColumn="span 3"
-                        bgcolor="#2a2a40"
-                        display="flex"
-                        flexDirection="column"
-                        alignItems="center"
-                        justifyContent="center"
-                        p={2}
-                        borderRadius="10px"
-                      >
-                        <CircularProgress
-                          variant="determinate"
-                          value={percent}
-                          size={80}
-                          thickness={5}
-                          sx={{
-                            color: stat.color,
-                            mb: 1,
-                          }}
-                        />
-                        <Typography variant="h6" color="#ffffff">
-                          {stat.label}
-                        </Typography>
-                        <Typography variant="body2" color="#aaa">
-                          {stat.value} ({Math.round(percent)}%)
-                        </Typography>
-                      </Box>
-                    );
-                  })}
-                </Box>
-
-                {/* Resume Score Distribution - Bar Chart */}
-                <Box gridColumn="span 12" p="20px">
-                  <Typography variant="h5" fontWeight="600" mb={2}>
-                    Resume Score Distribution
-                  </Typography>
-                  <Plot
-                    data={[
-                      {
-                        type: "bar",
-                        x: jobData.resumeScores.labels,
-                        y: jobData.resumeScores.values,
-                        marker: { color: "#42a5f5" },
-                      },
-                    ]}
-                    layout={{
-                      autosize: true,
-                      margin: { t: 20 },
-                      paper_bgcolor: "#1e1e2f",
-                      plot_bgcolor: "#1e1e2f",
-                      font: { color: "#ffffff" },
-                      title: "",
-                    }}
-                    style={{ width: "100%", height: "300px" }}
-                    onClick={handleBarClick}
-                  />
-                </Box>
-
-                {/* Experience Level - Pie Chart */}
-                <Box gridColumn="span 6" p="20px">
-                  <Typography variant="h5" fontWeight="600" mb={2}>
-                    Candidates by Experience Level (Years)
-                  </Typography>
-                  <Plot
-                    data={[
-                      {
-                        type: "pie",
-                        values: jobData.experience.values,
-                        labels: jobData.experience.labels,
-                        textinfo: "label+percent",
-                        marker: { colors: ["#66bb6a", "#42a5f5", "#ef5350", "#ab47bc"] },
-                      },
-                    ]}
-                    layout={{
-                      autosize: true,
-                      paper_bgcolor: "#1e1e2f",
-                      font: { color: "#ffffff" },
-                      margin: { t: 0, b: 0 },
-                    }}
-                    style={{ width: "100%", height: "300px" }}
-                  />
-                </Box>
-
-                {/* Degree Distribution - Pie Chart */}
-                <Box gridColumn="span 6" p="20px">
-                  <Typography variant="h5" fontWeight="600" mb={2}>
-                    Candidates by Degree
-                  </Typography>
-                  <Plot
-                    data={[
-                      {
-                        type: "pie",
-                        values: jobData.degree.values,
-                        labels: jobData.degree.labels,
-                        textinfo: "label+percent",
-                        marker: { colors: ["#ffb74d", "#4db6ac", "#7986cb", "#90a4ae"] },
-                      },
-                    ]}
-                    layout={{
-                      autosize: true,
-                      paper_bgcolor: "#1e1e2f",
-                      font: { color: "#ffffff" },
-                      margin: { t: 0, b: 0 },
-                    }}
-                    style={{ width: "100%", height: "300px" }}
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Box display="flex" justifyContent="center" mt={4}>
+          <Box 
+            display="flex" 
+            alignItems="center" 
+            width="100%"
+            maxWidth="600px"
+            mb={4}
+          >
+            <Autocomplete
+              freeSolo
+              options={jobRoles}
+              inputValue={searchTerm}
+              onInputChange={(event, newInputValue) => setSearchTerm(newInputValue)}
+              sx={{ width: "100%", backgroundColor: "#fff", borderRadius: "5px" }}
+              loading={loadingRoles}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Search Job Role"
+                  variant="outlined"
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {loadingRoles ? <CircularProgress color="inherit" size={20} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+            />
             <Button
-              onClick={exportToPDF}
-              variant="contained"
+              onClick={handleSearch}
+              disabled={loadingRoles}
               sx={{
+                ml: 2,
                 backgroundColor: "#1976d2",
                 color: "#ffffff",
                 fontWeight: "bold",
-                padding: "10px 30px",
-                fontSize: "16px",
+                padding: "10px 20px",
+                "&:disabled": {
+                  backgroundColor: "#cccccc",
+                }
               }}
             >
-              Export Report as PDF
+              Search
             </Button>
           </Box>
+          <Typography variant="h5" color="textSecondary">
+            Search for a job role to view analytics
+          </Typography>
+        </Box>
+      )}
+
+      {/* After search - normal layout */}
+      {hasSearched && (
+        <>
+          {/* Header with Search and Export */}
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+            {/* Search Autocomplete */}
+            <Box display="flex" alignItems="center" sx={{ width: '60%' }}>
+              <Autocomplete
+                freeSolo
+                options={jobRoles}
+                inputValue={searchTerm}
+                onInputChange={(event, newInputValue) => setSearchTerm(newInputValue)}
+                sx={{ width: 500, backgroundColor: "#fff", borderRadius: "5px" }}
+                loading={loadingRoles}
+                renderInput={(params) => (
+                  <TextField 
+                    {...params} 
+                    label="Search Job Role" 
+                    variant="outlined"
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {loadingRoles ? <CircularProgress color="inherit" size={20} /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+              />
+              <Button
+                onClick={handleSearch}
+                disabled={loadingRoles}
+                sx={{
+                  ml: 2,
+                  backgroundColor: "#1976d2",
+                  color: "#ffffff",
+                  fontWeight: "bold",
+                  padding: "10px 20px",
+                  "&:disabled": {
+                    backgroundColor: "#cccccc",
+                  }
+                }}
+              >
+                Search
+              </Button>
+            </Box>
+
+            {/* Export PDF Button - Top Right */}
+            {!loading && jobData && (
+              <Button
+                onClick={exportToPDF}
+                variant="contained"
+                sx={{
+                  backgroundColor: "#4caf50",
+                  color: "#ffffff",
+                  fontWeight: "bold",
+                  padding: "10px 30px",
+                  fontSize: "16px",
+                  "&:hover": {
+                    backgroundColor: "#388e3c",
+                  }
+                }}
+              >
+                Export as PDF
+              </Button>
+            )}
+          </Box>
+
+          {/* Loading Indicator */}
+          {loading && (
+            <Box display="flex" justifyContent="center" alignItems="center" mt={4}>
+              <CircularProgress />
+            </Box>
+          )}
+
+          {/* Display Content */}
+          {!loading && jobData && (
+            <div id="report-content">
+              <Card sx={{ mt: 4, bgcolor: "#1e1e2f", color: "#ffffff" }}>
+                <CardContent>
+                  {/* HEADER */}
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+                    <Typography variant="h4" fontWeight="600">
+                      {jobData.title} Analytics Report
+                    </Typography>
+                    <Typography variant="subtitle1">
+                      Generated on: {new Date().toLocaleDateString()}
+                    </Typography>
+                  </Box>
+
+                  {/* STATS - With Circular Progress */}
+                  <Box display="grid" gridTemplateColumns="repeat(12, 1fr)" gap="20px" mb={4}>
+                    {[
+                      {
+                        label: "CVs Passed",
+                        value: jobData.stats.cvsPassed,
+                        color: "#66bb6a",
+                      },
+                      {
+                        label: "CVs Processed",
+                        value: jobData.stats.cvsProcessed,
+                        color: "#42a5f5",
+                      },
+                      {
+                        label: "CVs Rejected",
+                        value: jobData.stats.cvsRejected,
+                        color: "#ef5350",
+                      },
+                      {
+                        label: "CVs Submitted",
+                        value: jobData.stats.cvsSubmitted,
+                        color: "#ffa726",
+                      },
+                    ].map((stat, index) => {
+                      const percent =
+                        stat.label === "CVs Submitted"
+                          ? 100
+                          : Math.min(
+                              (stat.value / jobData.stats.cvsSubmitted) * 100,
+                              100
+                            );
+
+                      return (
+                        <Box
+                          key={index}
+                          gridColumn="span 3"
+                          bgcolor="#2a2a40"
+                          display="flex"
+                          flexDirection="column"
+                          alignItems="center"
+                          justifyContent="center"
+                          p={2}
+                          borderRadius="10px"
+                        >
+                          <CircularProgress
+                            variant="determinate"
+                            value={percent}
+                            size={80}
+                            thickness={5}
+                            sx={{
+                              color: stat.color,
+                              mb: 1,
+                            }}
+                          />
+                          <Typography variant="h6" color="#ffffff">
+                            {stat.label}
+                          </Typography>
+                          <Typography variant="body2" color="#aaa">
+                            {stat.value} ({Math.round(percent)}%)
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+
+                
+{/* Resume Score Distribution - Bar Chart */}
+<Box gridColumn="span 12" p="20px">
+  <Typography variant="h5" fontWeight="600" mb={2}>
+    Resume Score Distribution
+  </Typography>
+  <Plot
+    data={[
+      {
+        type: "bar",
+        x: jobData.resumeScores.labels,
+        y: jobData.resumeScores.values,
+        marker: { color: "#42a5f5" },
+      },
+    ]}
+    layout={{
+      autosize: true,
+      margin: { t: 20 },
+      paper_bgcolor: "#1e1e2f",
+      plot_bgcolor: "#1e1e2f",
+      font: { color: "#ffffff" },
+      title: "",
+    }}
+    style={{ width: "100%", height: "300px" }}
+    config={{
+      displayModeBar: true,
+      responsive: true,
+    }}
+  />
+
+  {/* Score Range Buttons - closer and more spaced out */}
+  <Box display="flex" justifyContent="center" gap={4} mt={0.5}>
+    {["0-20", "21-40", "41-60", "61-80", "81-100"].map((range) => (
+      <Button
+        key={range}
+        variant="contained"
+        onClick={() => {
+          setSelectedScoreRange(range);
+          setModalOpen(true);
+        }}
+        sx={{ backgroundColor: "#1976d2", color: "#fff", fontWeight: "bold" }}
+      >
+        {range}
+      </Button>
+    ))}
+  </Box>
+</Box>
+
+
+
+
+                  {/* Experience Level - Pie Chart */}
+                  <Box gridColumn="span 6" p="20px">
+                    <Typography variant="h5" fontWeight="600" mb={2}>
+                      Candidates by Experience Level (Years)
+                    </Typography>
+                    <Plot
+                      data={[
+                        {
+                          type: "pie",
+                          values: jobData.experience.values,
+                          labels: jobData.experience.labels,
+                          textinfo: "label+percent",
+                          marker: { colors: ["#66bb6a", "#42a5f5", "#ef5350", "#ab47bc"] },
+                        },
+                      ]}
+                      layout={{
+                        autosize: true,
+                        paper_bgcolor: "#1e1e2f",
+                        font: { color: "#ffffff" },
+                        margin: { t: 0, b: 0 },
+                      }}
+                      style={{ width: "100%", height: "300px" }}
+                    />
+                  </Box>
+
+                  {/* Degree Distribution - Pie Chart */}
+                  <Box gridColumn="span 6" p="20px">
+                    <Typography variant="h5" fontWeight="600" mb={2}>
+                      Candidates by Degree
+                    </Typography>
+                    <Plot
+                      data={[
+                        {
+                          type: "pie",
+                          values: jobData.degree.values,
+                          labels: jobData.degree.labels,
+                          textinfo: "label+percent",
+                          marker: { colors: ["#ffb74d", "#4db6ac", "#7986cb", "#90a4ae"] },
+                        },
+                      ]}
+                      layout={{
+                        autosize: true,
+                        paper_bgcolor: "#1e1e2f",
+                        font: { color: "#ffffff" },
+                        margin: { t: 0, b: 0 },
+                      }}
+                      style={{ width: "100%", height: "300px" }}
+                    />
+                  </Box>
+
+                  {/* Candidates by Skill - Horizontal Bar */}
+                  <Box gridColumn="span 12" bgcolor="#1e1e2f" p="20px">
+                    <Typography variant="h5" fontWeight="600" color="#ffffff" mb={2}>
+                      Candidates by Skill
+                    </Typography>
+                    <Plot
+                      data={[
+                        {
+                          type: "bar",
+                          x: jobData.skills.values,
+                          y: jobData.skills.labels,
+                          orientation: "h",
+                          marker: { color: "#81c784" },
+                        },
+                      ]}
+                      layout={{
+                        autosize: true,
+                        paper_bgcolor: "#1e1e2f",
+                        plot_bgcolor: "#1e1e2f",
+                        font: { color: "#ffffff" },
+                        margin: { l: 100, r: 20, t: 20, b: 30 },
+                      }}
+                      style={{ width: "100%", height: "300px" }}
+                    />
+                  </Box>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </>
       )}
 
-      {/* Modal for Bar Details */}
-      <Modal open={modalOpen} onClose={handleCloseModal}>
+      {/* Modal for Candidate Details */}
+      <Modal 
+        open={modalOpen} 
+        onClose={handleCloseModal}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+        }}
+      >
         <Paper
           sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 600,
-            maxHeight: "80vh",
-            overflowY: "auto",
-            bgcolor: "#2a2a40",
-            boxShadow: 24,
+            width: '80%',
+            maxWidth: 600,
+            maxHeight: '80vh',
+            overflow: 'auto',
+            bgcolor: '#2a2a40',
+            color: '#ffffff',
             p: 4,
-            borderRadius: "10px",
+            borderRadius: '10px',
+            outline: 'none',
           }}
         >
           <Typography variant="h6" fontWeight="600" mb={3} color="#ffffff">
-            Candidate Details
+            Candidates with Score: {selectedScoreRange}
           </Typography>
-          {selectedBarIndex !== null && (
-            <Box>
-              {candidates.map((candidate, index) => (
-                <Box
-                  key={index}
-                  mb={2}
-                  p={3}
-                  border="1px solid #444"
-                  borderRadius="10px"
-                  bgcolor="#1e1e2f"
-                  color="#ffffff"
+          {selectedScoreRange && candidates[selectedScoreRange] ? (
+            candidates[selectedScoreRange].map((candidate, index) => (
+              <Box
+                key={index}
+                mb={2}
+                p={3}
+                border="1px solid #444"
+                borderRadius="10px"
+                bgcolor="#1e1e2f"
+                color="#ffffff"
+              >
+                <Typography variant="subtitle1" fontWeight="bold">
+                  {candidate.name}
+                </Typography>
+                <Typography variant="body2" mt={1}>
+                  <strong>Education:</strong> {candidate.education}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Experience:</strong> {candidate.experience}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Score:</strong> {candidate.score}
+                </Typography>
+                <Button
+                  href={candidate.cvLink}
+                  target="_blank"
+                  sx={{
+                    mt: 2,
+                    backgroundColor: "#42a5f5",
+                    color: "#fff",
+                    fontWeight: "bold",
+                    "&:hover": {
+                      backgroundColor: "#1e88e5",
+                    },
+                  }}
                 >
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    {candidate.name}
-                  </Typography>
-                  <Typography variant="body2" mt={1}>
-                    <strong>Education:</strong> {candidate.education}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Experience:</strong> {candidate.experience}
-                  </Typography>
-                  <Button
-                    href={candidate.cvLink}
-                    target="_blank"
-                    sx={{
-                      mt: 2,
-                      backgroundColor: "#42a5f5",
-                      color: "#fff",
-                      fontWeight: "bold",
-                      "&:hover": {
-                        backgroundColor: "#1e88e5",
-                      },
-                    }}
-                  >
-                    View CV
-                  </Button>
-                </Box>
-              ))}
-            </Box>
+                  View CV
+                </Button>
+              </Box>
+            ))
+          ) : (
+            <Typography color="#ffffff">No candidates available for this score range</Typography>
           )}
         </Paper>
       </Modal>
