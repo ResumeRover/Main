@@ -38,6 +38,15 @@ async def health_check(req: func.HttpRequest) -> func.HttpResponse:
 @function_app.route(route="auth/token", methods=["POST"])
 async def token_endpoint(req: func.HttpRequest) -> func.HttpResponse:
     """Endpoint for users to login and obtain access token"""
+    """Endpoint : https://resumeparserauthcs3023.azurewebsites.net/auth/token
+            body {
+                "username": "testuser",
+                "password": "testpassword"
+                }
+            output {
+                "access_token": "string",
+                "token_type": "bearer"
+                }"""
     try:
         body = req.get_json()
         form_data = OAuth2PasswordRequestForm(
@@ -62,6 +71,24 @@ async def token_endpoint(req: func.HttpRequest) -> func.HttpResponse:
 @function_app.route(route="auth/register", methods=["POST"])
 async def register_endpoint(req: func.HttpRequest) -> func.HttpResponse:
     """Endpoint for admin to register new users"""
+    """Endpoint : https://resumeparserauthcs3023.azurewebsites.net/auth/register
+            headers {
+            bearer token
+            }
+            body {
+                "username": "testuser",
+                "email": "test@gmail.com",
+                "full_name": "Test User",
+                "password": "testpassword"
+                }
+            output {
+                "email": "ashidu@gmail.com",
+                "username": "ashidu",
+                "full_name": null,
+                "id": "681df30e85d014f24cb60cfa",
+                "is_admin": false,
+                "created_at": "2025-05-09T12:20:30.945000"
+                }"""
     try:
         # Get token from authorization header
         auth_header = req.headers.get('Authorization')
