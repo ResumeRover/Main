@@ -49,6 +49,29 @@ def get_job_id_by_role(role: str):
     job = job_collection.find_one({"title": role}, {"_id": 1})
     return str(job["_id"]) if job else None
 
+@app.get("/candidates/{job_role}")
+def get_candidates_by_job_role(job_role: str = Path(..., description="Job role name")):
+    job_id = get_job_id_by_role(job_role)
+    if not job_id:
+        return {"error": f"Job role '{job_role}' not found"}
+
+    candidates = collection.find({"job_id": job_id})
+    result = []
+
+    for c in candidates:
+        result.append({
+            "name": c.get("name"),
+            "email": c.get("email"),
+            "ranking_score": c.get("ranking_score"),
+            "is_verified": c.get("is_verified"),
+            "phone": c.get("phone")
+        })
+
+    if not result:
+        raise HTTPException(status_code=404, detail="No candidates found for this job")
+
+    return result
+
 @app.get("/stats/summary/{job_role}")
 def get_cv_summary(job_role: str = Path(..., description="Job role name")):
     job_id = get_job_id_by_role(job_role)
@@ -58,14 +81,20 @@ def get_cv_summary(job_role: str = Path(..., description="Job role name")):
     query = {"job_id": job_id}
     total_submitted = collection.count_documents(query)
     total_processed = collection.count_documents({**query, "status": {"$in": ["saved", "processed"]}})
-    total_passed = collection.count_documents({**query, "status": "passed"})
     total_rejected = collection.count_documents({**query, "status": "rejected"})
+
+    pipeline = [
+        {"$match": query},
+        {"$group": {"_id": None, "average_score": {"$avg": "$ranking_score"}}}
+    ]
+    result = list(collection.aggregate(pipeline))
+    average_score = result[0]["average_score"] if result else 0
 
     return {
         "job_role": job_role,
         "submitted": total_submitted,
         "processed": total_processed,
-        "passed": total_passed,
+        "avg_score": average_score,
         "rejected": total_rejected
     }
 
@@ -276,3 +305,6 @@ def get_candidates_by_score_buckets(job_role: str = Path(..., description="Job r
                 break
 
     return grouped_candidates
+
+
+    
