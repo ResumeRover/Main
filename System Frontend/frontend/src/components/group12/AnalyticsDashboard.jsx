@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Button,
@@ -18,7 +18,9 @@ import html2canvas from "html2canvas";
 
 const api = axios.create({
   baseURL: "http://localhost:8000",
+  withCredentials: true
 });
+
 
 const AnalyticsDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,21 +32,105 @@ const AnalyticsDashboard = () => {
   const [jobRoles, setJobRoles] = useState([]);
   const [loadingRoles, setLoadingRoles] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [socket, setSocket] = useState(null);
+  const [socketStatus, setSocketStatus] = useState("disconnected");
+  const socketRef = useRef(null);
+  const searchTermRef = useRef('');
 
   useEffect(() => {
-    const fetchJobRoles = async () => {
-      try {
-        setLoadingRoles(true);
-        const response = await api.get("/jobs/titles");
-        setJobRoles(response.data.titles);
-      } catch (error) {
-        console.error("Error fetching job roles:", error);
-        setJobRoles(["SSE", "Software Engineer", "Data Scientist"]);
-      } finally {
-        setLoadingRoles(false);
+  searchTermRef.current = searchTerm;
+}, [searchTerm]);
+
+  // Initialize WebSocket connection
+  useEffect(() => {
+    // Create WebSocket connection
+    const ws = new WebSocket('ws://localhost:8000/ws');
+    
+    ws.onopen = () => {
+      console.log('WebSocket Connected');
+      setSocketStatus("connected");
+      socketRef.current = ws;
+      setSocket(ws);
+      
+      // Re-subscribe to current job if any
+      if (searchTerm) {
+        ws.send(JSON.stringify({
+          subscribe: searchTerm
+        }));
       }
     };
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('WebSocket message received:', data);
+        const currentSearchTerm = searchTermRef.current;
+        console.log("st",currentSearchTerm);
+        
+        // Handle different types of updates
+        if (data.type === 'db_update') {
+          if (data.collection === 'parsed_resumes' && currentSearchTerm) {
+            console.log('Resume collection updated, refreshing data');
+            fetchJobData(currentSearchTerm);
+          } else if (data.collection === 'jobs') {
+            console.log('Jobs collection updated, refreshing job roles');
+            fetchJobRoles();
+          }
+        } else if (data.type === 'subscription') {
+          console.log(`Subscription status: ${data.status} for job role: ${data.job_role || 'unknown'}`);
+        }
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error);
+      }
+    };
+    
+    ws.onclose = () => {
+      console.log('WebSocket Disconnected');
+      setSocketStatus("disconnected");
+      // Attempt to reconnect after a delay
+      setTimeout(() => {
+        setSocket(null);
+      }, 3000);
+    };
+    
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setSocketStatus("error");
+    };
+    
+    // Clean up on component unmount
+    return () => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+    };
+  }, [searchTerm]);
 
+  // Subscribe to specific job updates when job role changes
+  useEffect(() => {
+    if (socket && socket.readyState === WebSocket.OPEN && searchTerm) {
+      // Send subscription message
+      socket.send(JSON.stringify({
+        subscribe: searchTerm
+      }));
+      console.log(`Subscribed to updates for ${searchTerm}`);
+    }
+  }, [socket, searchTerm]);
+
+  const fetchJobRoles = async () => {
+    try {
+      setLoadingRoles(true);
+      const response = await api.get("/jobs/titles");
+      setJobRoles(response.data.titles);
+    } catch (error) {
+      console.error("Error fetching job roles:", error);
+      setJobRoles(["SSE", "Software Engineer", "Data Scientist"]);
+    } finally {
+      setLoadingRoles(false);
+    }
+  };
+
+  useEffect(() => {
     fetchJobRoles();
   }, []);
 
@@ -60,9 +146,10 @@ const AnalyticsDashboard = () => {
         api.get(`/stats/degree-distribution/${role}`),
         api.get(`/stats/skill-distribution/${role}`),
         api.get(`/candidates/score-buckets/${role}`),
-        
       ]);
+      
       setCandidates(candidatesRes.data);
+      
       const transformedData = {
         title: role,
         stats: {
@@ -90,32 +177,6 @@ const AnalyticsDashboard = () => {
       };
 
       setJobData(transformedData);
-      
-      // Generate mock candidates for each score range
-      const mockCandidates = {
-        "0-20": [
-          { name: "John Doe", education: "Bachelors in CS", experience: "2 years", cvLink: "#", score: 15 },
-          { name: "Jane Smith", education: "High School", experience: "0 years", cvLink: "#", score: 10 }
-        ],
-        "21-40": [
-          { name: "Alice Johnson", education: "Associate Degree", experience: "1 year", cvLink: "#", score: 35 },
-          { name: "Bob Brown", education: "Bachelors in IT", experience: "1.5 years", cvLink: "#", score: 30 }
-        ],
-        "41-60": [
-          { name: "Charlie Davis", education: "Bachelors in CS", experience: "3 years", cvLink: "#", score: 55 },
-          { name: "Diana Evans", education: "Masters in IT", experience: "2 years", cvLink: "#", score: 45 }
-        ],
-        "61-80": [
-          { name: "Ethan Foster", education: "Masters in CS", experience: "5 years", cvLink: "#", score: 75 },
-          { name: "Fiona Green", education: "PhD in CS", experience: "3 years", cvLink: "#", score: 65 }
-        ],
-        "81-100": [
-          { name: "George Harris", education: "PhD in AI", experience: "8 years", cvLink: "#", score: 90 },
-          { name: "Hannah Irving", education: "Masters in ML", experience: "6 years", cvLink: "#", score: 85 }
-        ]
-      };
-      
-      //setCandidates(mockCandidates);
 
     } catch (error) {
       console.error("Error fetching job data:", error);
@@ -160,6 +221,14 @@ const AnalyticsDashboard = () => {
     );
     if (matchedRole) {
       fetchJobData(matchedRole);
+      
+      // Subscribe to job-specific updates via WebSocket
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+          subscribe: matchedRole
+        }));
+        console.log(`Subscribed to updates for ${matchedRole}`);
+      }
     } else {
       console.warn("No matching job role found");
     }
@@ -212,6 +281,9 @@ const AnalyticsDashboard = () => {
 
   return (
     <Box m="20px">
+      {/* WebSocket Status Indicator */}
+      
+
       {/* Initial state - centered search bar */}
       {!hasSearched && (
         <Box 
@@ -432,56 +504,53 @@ const AnalyticsDashboard = () => {
                     })}
                   </Box>
 
-                
-{/* Resume Score Distribution - Bar Chart */}
-<Box gridColumn="span 12" p="20px">
-  <Typography variant="h5" fontWeight="600" mb={2}>
-    Resume Score Distribution
-  </Typography>
-  <Plot
-    data={[
-      {
-        type: "bar",
-        x: jobData.resumeScores.labels,
-        y: jobData.resumeScores.values,
-        marker: { color: "#42a5f5" },
-      },
-    ]}
-    layout={{
-      autosize: true,
-      margin: { t: 20 },
-      paper_bgcolor: "#1e1e2f",
-      plot_bgcolor: "#1e1e2f",
-      font: { color: "#ffffff" },
-      title: "",
-    }}
-    style={{ width: "100%", height: "300px" }}
-    config={{
-      displayModeBar: true,
-      responsive: true,
-    }}
-  />
+                  {/* Resume Score Distribution - Bar Chart */}
+                  <Box gridColumn="span 12" p="20px">
+                    <Typography variant="h5" fontWeight="600" mb={2}>
+                      Resume Score Distribution
+                    </Typography>
+                    <Plot
+                      data={[
+                        {
+                          type: "bar",
+                          x: jobData.resumeScores.labels,
+                          y: jobData.resumeScores.values,
+                          marker: { color: "#42a5f5" },
+                        },
+                      ]}
+                      layout={{
+                        autosize: true,
+                        margin: { t: 20 },
+                        paper_bgcolor: "#1e1e2f",
+                        plot_bgcolor: "#1e1e2f",
+                        font: { color: "#ffffff" },
+                        title: "",
+                      }}
+                      style={{ width: "100%", height: "300px" }}
+                      config={{
+                        displayModeBar: true,
+                        responsive: true,
+                      }}
+                      onClick={handleBarClick}
+                    />
 
-  {/* Score Range Buttons - closer and more spaced out */}
-  <Box display="flex" justifyContent="center" gap={4} mt={0.5}>
-    {["0-20", "21-40", "41-60", "61-80", "81-100"].map((range) => (
-      <Button
-        key={range}
-        variant="contained"
-        onClick={() => {
-          setSelectedScoreRange(range);
-          setModalOpen(true);
-        }}
-        sx={{ backgroundColor: "#1976d2", color: "#fff", fontWeight: "bold" }}
-      >
-        {range}
-      </Button>
-    ))}
-  </Box>
-</Box>
-
-
-
+                    {/* Score Range Buttons - closer and more spaced out */}
+                    <Box display="flex" justifyContent="center" gap={4} mt={0.5}>
+                      {["0-20", "21-40", "41-60", "61-80", "81-100"].map((range) => (
+                        <Button
+                          key={range}
+                          variant="contained"
+                          onClick={() => {
+                            setSelectedScoreRange(range);
+                            setModalOpen(true);
+                          }}
+                          sx={{ backgroundColor: "#1976d2", color: "#fff", fontWeight: "bold" }}
+                        >
+                          {range}
+                        </Button>
+                      ))}
+                    </Box>
+                  </Box>
 
                   {/* Experience Level - Pie Chart */}
                   <Box gridColumn="span 6" p="20px">
