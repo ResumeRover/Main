@@ -9,7 +9,7 @@ import Plot from 'react-plotly.js';
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL2, 
+  baseURL: "https://main-production-7511.up.railway.app/"
 });
 
 
