@@ -17,7 +17,7 @@ app = FastAPI()
 
 
 # CORS setup
-origins = ["http://localhost:5173"]  # Update with your frontend URL in production
+origins = ["*"]  # Update with your frontend URL in production
 
 app.add_middleware(
     CORSMiddleware,
