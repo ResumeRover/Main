@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:9000",
+  baseURL: process.env.REACT_APP_API_URL, 
 });
+
 
 const CandidateRanking = () => {
   const [candidates, setCandidates] = useState([]);
@@ -249,7 +250,7 @@ const CandidateRanking = () => {
                   </td>
                   <td className="px-6 py-4 text-sm">{candidate.phone}</td>
                   <td className="px-6 py-4 text-sm">
-                    {getStatusBadge(candidate.is_verified)}
+                    {getStatusBadge(true)}
                   </td>
                   <td className="px-6 py-4">
                     <div
