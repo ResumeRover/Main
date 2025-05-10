@@ -6,8 +6,12 @@ from config import MONGO_URL, DB_NAME, COLLECTION_NAME
 from datetime import datetime
 from collections import Counter
 from bson.decimal128 import Decimal128
+from dateutil import parser
+from dateutil.relativedelta import relativedelta
+from typing import List,Dict
 
 app = FastAPI()
+
 
 # CORS setup
 origins = ["*"]  # Update with your frontend URL in production
@@ -94,33 +98,58 @@ def get_experience_distribution(job_role: str = Path(..., description="Job role 
         return {"error": f"Job role '{job_role}' not found"}
 
     buckets = {"0-1": 0, "2-4": 0, "5-8": 0, "9+": 0}
-    current_year = datetime.now().year
 
     for doc in collection.find({"job_id": job_id}, {"work_experience": 1}):
-        total_years = 0
-        for exp in doc.get("work_experience", []):
-            dates = exp.get("dates", "")
-            try:
-                if "Present" in dates:
-                    start_year = int(dates.split()[-3])
-                    end_year = current_year
-                else:
-                    parts = dates.split()
-                    start_year = int(parts[1])
-                    end_year = int(parts[-1])
-                total_years += max(0, end_year - start_year)
-            except:
-                continue
+        total_months = calculate_total_experience_months(doc.get("work_experience", []))
 
-        if total_years <= 1:
+        # Place into bucket
+        if total_months < 12:
             buckets["0-1"] += 1
-        elif total_years <= 4:
+        elif total_months <= 48:
             buckets["2-4"] += 1
-        elif total_years <= 8:
+        elif total_months <= 96:
             buckets["5-8"] += 1
         else:
             buckets["9+"] += 1
+
     return buckets
+
+
+def calculate_total_experience_months(work_experience: list) -> int:
+    total_months = 0
+    now = datetime.now()
+
+    for exp in work_experience:
+        dates = exp.get("dates", "")
+        if not dates:
+            continue
+
+        # Normalize dash
+        dates = dates.replace("–", "-")
+
+        try:
+            parts = [p.strip() for p in dates.split("-")]
+            if len(parts) != 2:
+                continue
+
+            start_date = parser.parse(parts[0])
+            end_str = parts[1].lower()
+
+            if "present" in end_str:
+                end_date = now
+            else:
+                end_date = parser.parse(parts[1])
+
+            # Use relativedelta for accurate diff
+            delta = relativedelta(end_date, start_date)
+            months = delta.years * 12 + delta.months
+            if months > 0:
+                total_months += months
+        except Exception:
+            continue
+
+    return total_months
+
 
 @app.get("/stats/degree-distribution/{job_role}")
 def get_degree_distribution(job_role: str = Path(..., description="Job role name")):
@@ -185,3 +214,65 @@ def get_candidates_by_job(job_role: str = Path(..., description="Job role name")
         raise HTTPException(status_code=404, detail="No candidates found for this job")
 
     return result
+
+@app.get("/candidates/score-buckets/{job_role}")
+def get_candidates_by_score_buckets(job_role: str = Path(..., description="Job role name")):
+    # Fetch the job ID based on the job role
+    job_id = get_job_id_by_role(job_role)
+    if not job_id:
+        return {"error": f"Job role '{job_role}' not found"}
+
+    # Define score ranges
+    score_ranges = {
+        "0-20": (0, 20),
+        "21-40": (21, 40),
+        "41-60": (41, 60),
+        "61-80": (61, 80),
+        "81-100": (81, 100),
+    }
+
+    # Initialize grouped candidates
+    grouped_candidates: Dict[str, List[dict]] = {key: [] for key in score_ranges}
+
+    # Query resumes for the specific job_id and valid scores
+    query = {"job_id": job_id, "ranking_score": {"$gte": 0}}
+    for doc in collection.find(query):
+        score = doc.get("ranking_score", 0)
+        name = doc.get("name", "Unknown")
+        email = doc.get("email", "N/A")
+        phone = doc.get("phone", "N/A")
+        education_list = doc.get("education", [])
+        experience_list = doc.get("work_experience", [])
+        cv_filename = doc.get("original_filename", "")
+
+        # Extract latest education
+        education = (
+            education_list[-1]["degree"]
+            if education_list and "degree" in education_list[-1]
+            else "N/A"
+        )
+
+        # Estimate experience duration from work_experience
+        experience = f"{len(experience_list)} job(s)" if experience_list else "0 jobs"
+
+        # Generate CV link
+        cv_link = f"/static/cvs/{cv_filename}"
+
+        # Create candidate object
+        candidate = {
+            "name": name,
+            "email": email,
+            "phone": phone,
+            "education": education,
+            "experience": experience,
+            "cvLink": cv_link,
+            "score": score,
+        }
+
+        # Place into appropriate score bin
+        for label, (low, high) in score_ranges.items():
+            if low <= score <= high:
+                grouped_candidates[label].append(candidate)
+                break
+
+    return grouped_candidates
