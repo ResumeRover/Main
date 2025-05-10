@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 function JobRolePanel() {
   // Education data from database
@@ -52,13 +53,20 @@ function JobRolePanel() {
   const initialFormState = {
     roleName: '',
     department: '',
-    experienceLevel: 'entry',
+    experienceLevel: '0',
+    required_experience: 0,
     skills: [],
-    minEducation: 'bsc', // Default minimum education requirement
-    preferredEducation: 'msc', // Default preferred education
+    minEducation: 'bsc',
+    preferredEducation: 'msc',
     responsibilities: '',
     qualifications: '',
-    status: 'active'
+    status: 'active',
+    company: '',
+    location: '',
+    salaryMin: '',
+    salaryMax: '',
+    jobType: 'Full-time',
+    isRemote: false
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -66,15 +74,100 @@ function JobRolePanel() {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [jobRoles, setJobRoles] = useState([]);
   const [hoveredRole, setHoveredRole] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [editingRoleId, setEditingRoleId] = useState(null);
-  const [formMode, setFormMode] = useState('add'); // 'add' or 'edit'
+  const [formMode, setFormMode] = useState('add');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Create axios instance with proper error handling
+  const api = axios.create({
+    baseURL: "https://resumeparserjobscs3023.azurewebsites.net/api",
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*'
+    }
+  });
+
+  // Add interceptor for error handling
+  api.interceptors.response.use(
+    response => response,
+    error => {
+      console.error('API Error:', error);
+      if (error.response) {
+        // Server responded with a status code outside of 2xx range
+        console.error('Error data:', error.response.data);
+        return Promise.reject(new Error(error.response.data.message || 'An error occurred with the request'));
+      } else if (error.request) {
+        // Request was made but no response received
+        return Promise.reject(new Error('No response received from server. Please check your connection.'));
+      } else {
+        // Error setting up the request
+        return Promise.reject(new Error('Error setting up the request: ' + error.message));
+      }
+    }
+  );
+
+  // Function to format data for persistent storage
+  const saveToLocalStorage = (roles) => {
+    localStorage.setItem('jobRoles', JSON.stringify(roles));
+  };
+
+  // Function to load data from persistent storage
+  const loadFromLocalStorage = () => {
+    const savedRoles = localStorage.getItem('jobRoles');
+    return savedRoles ? JSON.parse(savedRoles) : [];
+  };
+
+  // Fetch job roles on component mount
+  useEffect(() => {
+    const fetchJobRoles = async () => {
+      setIsLoading(true);
+      try {
+        // Try to fetch from API first
+        const response = await api.get("/jobs?code=yfdJdeNoFZzkQynk6p56ZETolRh1NqSpOaBYcTebXJO3AzFuWbJDmQ==");
+        if (response.data && Array.isArray(response.data)) {
+          // Transform the API response to match our local format
+          const transformedRoles = response.data.map(job => ({
+            id: job.id || Math.random().toString(36).substr(2, 9),
+            roleName: job.title || 'Untitled Position',
+            department: job.department || 'Unspecified',
+            experienceLevel: job.required_experience?.toString() || '0',
+            required_experience: job.required_experience || 0,
+            skills: job.required_skills || [],
+            minEducation: job.required_education?.toLowerCase() || 'bsc',
+            preferredEducation: job.preferred_education?.toLowerCase() || 'msc',
+            responsibilities: job.description || '',
+            qualifications: job.additional_qualifications || '',
+            status: job.is_active ? 'active' : 'archived',
+            company: job.company || '',
+            location: job.location || '',
+            salaryMin: job.salary_range?.split('-')[0]?.trim().replace(/[^0-9]/g, '') || '',
+            salaryMax: job.salary_range?.split('-')[1]?.trim().replace(/[^0-9]/g, '') || '',
+            jobType: job.job_type || 'Full-time',
+            isRemote: job.remote === 'True' || job.remote === true
+          }));
+          setJobRoles(transformedRoles);
+          saveToLocalStorage(transformedRoles); // Save to localStorage as backup
+        }
+      } catch (err) {
+        console.error('Error fetching job roles from API:', err);
+        // Fallback to local storage if API fails
+        const savedRoles = loadFromLocalStorage();
+        setJobRoles(savedRoles);
+        setError("Couldn't connect to server. Loading saved roles from local storage.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchJobRoles();
+  }, []);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData(prevState => ({
       ...prevState,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
   
@@ -100,41 +193,106 @@ function JobRolePanel() {
     setCurrentSkill('');
     setFormMode('add');
     setEditingRoleId(null);
+    setError(null);
   };
 
   const handleCancel = () => {
     resetForm();
   };
   
-  const handleSubmit = (e) => {
-    if (e) e.preventDefault();
-    
-    if (formMode === 'add') {
-      // Add to job roles list
-      setJobRoles(prevRoles => [...prevRoles, { ...formData, id: Date.now() }]);
-      setFormSubmitted(true);
-      
-      // Reset submission message after 3 seconds
-      setTimeout(() => {
-        setFormSubmitted(false);
-      }, 3000);
-    } else if (formMode === 'edit' && editingRoleId) {
-      // Update existing job role
-      setJobRoles(prevRoles => 
-        prevRoles.map(role => 
-          role.id === editingRoleId ? { ...formData, id: editingRoleId } : role
-        )
-      );
-      setFormSubmitted(true);
-      
-      // Reset submission message after 3 seconds
-      setTimeout(() => {
-        setFormSubmitted(false);
-      }, 3000);
+  const handleSubmit = async () => {
+    // Input validation
+    if (!formData.roleName || !formData.department || formData.skills.length === 0 || !formData.company || !formData.location) {
+      setError('Please fill in all required fields (Role Name, Department, Skills, Company, and Location)');
+      return;
     }
+
+    if (!formData.salaryMin || !formData.salaryMax) {
+      setError('Please provide a valid salary range');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
     
-    // Reset form
-    resetForm();
+    const salaryRange = `LKR ${formData.salaryMin} - ${formData.salaryMax}`;
+    
+    const payload = {
+      title: formData.roleName,
+      company: formData.company,
+      location: formData.location,
+      description: formData.responsibilities,
+      required_skills: formData.skills,
+      required_experience: parseInt(formData.required_experience) || 0,
+      required_education: formData.minEducation,
+      preferred_education: formData.preferredEducation,
+      additional_qualifications: formData.qualifications,
+      salary_range: salaryRange,
+      job_type: formData.jobType,
+      remote: formData.isRemote.toString(),
+      is_active: formData.status === 'active'
+    };
+    
+    try {
+      let updatedJobRoles;
+      
+      if (formMode === 'add') {
+        // Try to submit to backend
+        try {
+          const response = await api.post("/jobs?code=yfdJdeNoFZzkQynk6p56ZETolRh1NqSpOaBYcTebXJO3AzFuWbJDmQ==", payload);
+          console.log('API Response:', response.data);
+          
+          // Create new job role with the API response ID if available
+          const newJobRole = {
+            id: response.data?.id || Math.random().toString(36).substr(2, 9),
+            ...formData
+          };
+          updatedJobRoles = [...jobRoles, newJobRole];
+        } catch (err) {
+          // If API call fails, still add to local state with a generated ID
+          console.error('Error adding job role to API:', err);
+          const newJobRole = {
+            id: Math.random().toString(36).substr(2, 9),
+            ...formData
+          };
+          updatedJobRoles = [...jobRoles, newJobRole];
+          setError('Failed to save to server, but job role was saved locally.');
+        }
+      } else if (formMode === 'edit') {
+        // Try to update on backend
+        try {
+          await api.put(`/jobs/${editingRoleId}?code=yfdJdeNoFZzkQynk6p56ZETolRh1NqSpOaBYcTebXJO3AzFuWbJDmQ==`, payload);
+          
+          // Update the job in local state
+          updatedJobRoles = jobRoles.map(role => 
+            role.id === editingRoleId ? { ...formData, id: editingRoleId } : role
+          );
+        } catch (err) {
+          // If API call fails, still update in local state
+          console.error('Error updating job role in API:', err);
+          updatedJobRoles = jobRoles.map(role => 
+            role.id === editingRoleId ? { ...formData, id: editingRoleId } : role
+          );
+          setError('Failed to update on server, but job role was updated locally.');
+        }
+      }
+      
+      // Update local state and localStorage regardless of API result
+      setJobRoles(updatedJobRoles);
+      saveToLocalStorage(updatedJobRoles);
+      
+      setFormSubmitted(true);
+      resetForm();
+      
+      setTimeout(() => {
+        setFormSubmitted(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Error:', error);
+      setError('Failed to submit job role. ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleEditRole = (id) => {
@@ -152,14 +310,44 @@ function JobRolePanel() {
     }
   };
 
-  const handleDeleteRole = (id) => {
+  const handleDeleteRole = async (id) => {
     // If we're currently editing this role, cancel the edit
     if (editingRoleId === id) {
       resetForm();
     }
     
-    setJobRoles(prevRoles => prevRoles.filter(role => role.id !== id));
+    setIsLoading(true);
+    
+    try {
+      // Try to delete from backend
+      await api.delete(`/jobs/${id}?code=yfdJdeNoFZzkQynk6p56ZETolRh1NqSpOaBYcTebXJO3AzFuWbJDmQ==`);
+      
+      // Update local state and localStorage
+      const updatedRoles = jobRoles.filter(role => role.id !== id);
+      setJobRoles(updatedRoles);
+      saveToLocalStorage(updatedRoles);
+    } catch (err) {
+      console.error('Error deleting job role from API:', err);
+      
+      // If API call fails, still delete from local state
+      const updatedRoles = jobRoles.filter(role => role.id !== id);
+      setJobRoles(updatedRoles);
+      saveToLocalStorage(updatedRoles);
+      setError('Failed to delete from server, but job role was removed locally.');
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  // Available job types
+  const jobTypes = [
+    'Full-time',
+    'Part-time',
+    'Contract',
+    'Temporary',
+    'Internship',
+    'Freelance'
+  ];
 
   return (
     <div className="max-w-6xl mx-auto p-4 fade-in">
@@ -191,11 +379,32 @@ function JobRolePanel() {
               </div>
             )}
             
+            {error && (
+              <div className="bg-red-500 bg-opacity-20 border border-red-500 rounded-lg p-3 mb-6 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400 mr-2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span className="text-red-400 text-sm">{error}</span>
+                <button
+                  onClick={() => setError(null)}
+                  className="ml-auto text-red-400 hover:text-red-300"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            )}
+            
             <div>
+              {/* Basic Job Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label htmlFor="roleName" className="block text-sm font-medium text-gray-300 mb-1">
-                    Role Name
+                    Job Title <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="text"
@@ -207,33 +416,10 @@ function JobRolePanel() {
                     placeholder="e.g. Software Engineer"
                   />
                 </div>
-                
 
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label htmlFor="experienceLevel" className="block text-sm font-medium text-gray-300 mb-1">
-                    Experience Level
-                  </label>
-                  <select
-                    id="experienceLevel"
-                    name="experienceLevel"
-                    value={formData.experienceLevel}
-                    onChange={handleChange}
-                    className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="entry">Entry Level</option>
-                    <option value="mid">Mid Level</option>
-                    <option value="senior">Senior Level</option>
-                    <option value="lead">Lead/Manager</option>
-                    <option value="executive">Executive</option>
-                  </select>
-                </div>
-                
                 <div>
                   <label htmlFor="department" className="block text-sm font-medium text-gray-300 mb-1">
-                    Department
+                    Department <span className="text-red-400">*</span>
                   </label>
                   <select
                     id="department"
@@ -257,10 +443,143 @@ function JobRolePanel() {
                   </select>
                 </div>
               </div>
+
+              {/* Company and Location */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label htmlFor="company" className="block text-sm font-medium text-gray-300 mb-1">
+                    Company Name <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="company"
+                    name="company"
+                    value={formData.company}
+                    onChange={handleChange}
+                    className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g. Tech Innovators Ltd."
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="location" className="block text-sm font-medium text-gray-300 mb-1">
+                    Location <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="location"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleChange}
+                    className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g. Colombo, Sri Lanka"
+                  />
+                </div>
+              </div>
+              
+              {/* Salary Range */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Salary Range (LKR) <span className="text-red-400">*</span>
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <input
+                      type="number"
+                      id="salaryMin"
+                      name="salaryMin"
+                      value={formData.salaryMin}
+                      onChange={handleChange}
+                      className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Minimum (e.g. 100000)"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="number"
+                      id="salaryMax"
+                      name="salaryMax"
+                      value={formData.salaryMax}
+                      onChange={handleChange}
+                      className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Maximum (e.g. 150000)"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Job Type and Remote Option */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label htmlFor="jobType" className="block text-sm font-medium text-gray-300 mb-1">
+                    Job Type <span className="text-red-400">*</span>
+                  </label>
+                  <select
+                    id="jobType"
+                    name="jobType"
+                    value={formData.jobType}
+                    onChange={handleChange}
+                    className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {jobTypes.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center pt-7">
+                  <input
+                    type="checkbox"
+                    id="isRemote"
+                    name="isRemote"
+                    checked={formData.isRemote}
+                    onChange={handleChange}
+                    className="h-4 w-4 rounded border-gray-700 bg-gray-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-800"
+                  />
+                  <label htmlFor="isRemote" className="ml-2 text-sm font-medium text-gray-300">
+                    Remote Position
+                  </label>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label htmlFor="required_experience" className="block text-sm font-medium text-gray-300 mb-1">
+                    Years of Experience Required
+                  </label>
+                  <input
+                    type="number"
+                    id="required_experience"
+                    name="required_experience"
+                    value={formData.required_experience}
+                    onChange={handleChange}
+                    min="0"
+                    className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g. 2"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="status" className="block text-sm font-medium text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <select
+                    id="status"
+                    name="status"
+                    value={formData.status}
+                    onChange={handleChange}
+                    className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="active">Active</option>
+                    <option value="draft">Draft</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                </div>
+              </div>
               
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Required Skills
+                  Required Skills <span className="text-red-400">*</span>
                 </label>
                 <div className="flex">
                   <input
@@ -420,37 +739,30 @@ function JobRolePanel() {
                 />
               </div>
               
-              <div className="mb-6">
-                <label htmlFor="status" className="block text-sm font-medium text-gray-300 mb-1">
-                  Status
-                </label>
-                <select
-                  id="status"
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="active">Active</option>
-                  <option value="draft">Draft</option>
-                  <option value="archived">Archived</option>
-                </select>
-              </div>
-              
               <div className="flex justify-end">
                 <button
                   type="button"
                   onClick={handleCancel}
                   className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm transition-colors border border-gray-700 mr-3"
+                  disabled={isLoading}
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm transition-colors"
+                  disabled={isLoading}
+                  className={`bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm transition-colors ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  {formMode === 'add' ? 'Save Job Role' : 'Update Job Role'}
+                  {isLoading ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </span>
+                  ) : formMode === 'add' ? 'Save Job Role' : 'Update Job Role'}
                 </button>
               </div>
             </div>
@@ -469,8 +781,21 @@ function JobRolePanel() {
               Job Roles List
             </h2>
             
-            {jobRoles.length === 0 ? (
-              <div className="text-center text-gray-400">No job roles added yet.</div>
+            {isLoading && (
+              <div className="flex justify-center items-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
+                <span className="ml-2 text-gray-300">Loading...</span>
+              </div>
+            )}
+            
+            {!isLoading && jobRoles.length === 0 ? (
+              <div className="text-center text-gray-400 py-8">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <p className="text-sm">No job roles added yet.</p>
+                <p className="text-xs text-gray-600 mt-1">Create your first job role using the form.</p>
+              </div>
             ) : (
               <div className="overflow-x-auto max-h-96 overflow-y-auto">
                 <table className="w-full divide-y divide-gray-800">
@@ -478,7 +803,6 @@ function JobRolePanel() {
                     <tr>
                       <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Role Name</th>
                       <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Department</th>
-                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Experience</th>
                       <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
                       <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -496,9 +820,6 @@ function JobRolePanel() {
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-white truncate max-w-xs">
                           {role.department}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-white">
-                          {role.experienceLevel}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -548,6 +869,27 @@ function JobRolePanel() {
                 </table>
               </div>
             )}
+          </div>
+          
+          {/* Help and Information Panel */}
+          <div className="bg-gray-900 bg-opacity-70 rounded-xl backdrop-blur-sm shadow-xl p-6 card-3d">
+            <h3 className="text-lg font-medium text-white mb-4 flex items-center">
+              <span className="mr-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </span>
+              Help Information
+            </h3>
+            <div className="text-gray-400 text-sm space-y-3">
+              <p>Create job roles that will be used to match candidate resumes. These roles define the requirements and qualifications needed.</p>
+              <p className="border-t border-gray-800 pt-3 mt-2">Fields marked with <span className="text-red-400">*</span> are required.</p>
+              <p>
+                <strong className="text-blue-300">Note:</strong> Job roles are saved to both the server and locally. If the server is unavailable, your changes will be saved locally and synchronized when the connection is restored.
+              </p>
+            </div>
           </div>
         </div>
       </div>
