@@ -14,8 +14,9 @@ import axios from "axios";
 
 // Initialize axios with base URL
 const api = axios.create({
-  baseURL: "http://localhost:8000",
+  baseURL: process.env.REACT_APP_API_URL, 
 });
+
 
 const JobRolesPage = () => {
   const navigate = useNavigate();
@@ -128,9 +129,12 @@ const JobRolesPage = () => {
             {jobRoles.map((role) => (
               <ListItem key={role.name} disablePadding>
                 <ListItemButton
-                  onClick={() =>
-                    navigate(`/analytics-dashboard/${encodeURIComponent(role.name)}`)
-                  }
+                  onClick={() => {
+                    console.log("Storing job role:", role.name);
+                    localStorage.setItem("jobRole", role.name);
+                    navigate(`/analytics-dashboard/${encodeURIComponent(role.name)}`);
+                    
+                  }}
                   sx={{ bgcolor: "#1e1e2f", mb: 1, borderRadius: "5px" }}
                 >
                   <ListItemText
