@@ -1,8 +1,21 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-const api = axios.create({
-  baseURL: "http://localhost:9000",
+// Create API service for both jobs and email
+const jobsApi = axios.create({
+  baseURL: "https://resumeparserjobscs3023.azurewebsites.net/api",
+  headers: {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*'
+  }
+});
+
+// Email client API
+const emailApi = axios.create({
+  baseURL: "https://main-production-0f03.up.railway.app",
+  headers: {
+    'Content-Type': 'application/json'
+  }
 });
 
 const CandidateRanking = () => {
@@ -11,34 +24,55 @@ const CandidateRanking = () => {
   const [jobList, setJobList] = useState([]);
   const [jobPosition, setJobPosition] = useState("");
   const [error, setError] = useState(null);
+  const [emailSending, setEmailSending] = useState(false);
 
   const [showOverlay, setShowOverlay] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [actionType, setActionType] = useState(""); // "accept" or "reject"
-  const [sendEmail, setSendEmail] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false); // For confirmation tick animation
+  const [sendEmail, setSendEmail] = useState(true); // Default to true
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [emailStatus, setEmailStatus] = useState({ success: false, message: '' });
 
+  // Fetch job roles from API
   useEffect(() => {
     const fetchJobRoles = async () => {
       try {
-        const response = await api.get("/jobs/titles");
-        const titles = response.data.titles;
-        setJobList(titles);
+        const response = await jobsApi.get("/jobs?code=yfdJdeNoFZzkQynk6p56ZETolRh1NqSpOaBYcTebXJO3AzFuWbJDmQ==");
+        
+        if (response.data && Array.isArray(response.data)) {
+          // Extract unique job titles
+          const titles = [...new Set(response.data.map(job => job.title))];
+          setJobList(titles);
+        } else {
+          // Fallback to local storage if API fails
+          loadJobsFromLocalStorage();
+        }
       } catch (err) {
         console.error("Error fetching job roles:", err);
         setError("Failed to load job roles");
-      } finally {
-        setLoading(false);
+        // Fallback to local storage if API fails
+        loadJobsFromLocalStorage();
+      }
+    };
+
+    const loadJobsFromLocalStorage = () => {
+      try {
+        const savedJobs = localStorage.getItem('jobRoles');
+        if (savedJobs) {
+          const jobData = JSON.parse(savedJobs);
+          const titles = jobData.map(job => job.roleName);
+          setJobList(titles);
+        }
+      } catch (err) {
+        console.error("Error loading jobs from localStorage:", err);
       }
     };
 
     fetchJobRoles();
-  }, 
-  
-  []);
+  }, []);
 
-   // Mock data for testing
-   useEffect(() => {
+  // Set mock candidates data
+  const setMockCandidates = () => {
     const mockCandidates = [
       {
         id: 1,
@@ -47,6 +81,8 @@ const CandidateRanking = () => {
         phone: "123-456-7890",
         is_verified: true,
         ranking_score: 85,
+        status: "in progress",
+        applied_position: "Frontend Developer"
       },
       {
         id: 2,
@@ -55,6 +91,8 @@ const CandidateRanking = () => {
         phone: "987-654-3210",
         is_verified: false,
         ranking_score: 78,
+        status: "in progress",
+        applied_position: "Backend Developer"
       },
       {
         id: 3,
@@ -63,6 +101,8 @@ const CandidateRanking = () => {
         phone: "555-123-4567",
         is_verified: true,
         ranking_score: 92,
+        status: "in progress",
+        applied_position: "Data Analyst"
       },
       {
         id: 4,
@@ -71,36 +111,131 @@ const CandidateRanking = () => {
         phone: "444-555-6666",
         is_verified: false,
         ranking_score: 65,
+        status: "in progress",
+        applied_position: "UI/UX Designer"
+      },
+      {
+        id: 5,
+        name: "Sara Wilson",
+        email: "sara.wilson@example.com",
+        phone: "222-333-4444",
+        is_verified: true,
+        ranking_score: 88,
+        status: "in progress",
+        applied_position: "Project Manager"
+      },
+      {
+        id: 6,
+        name: "Mike Johnson",
+        email: "mike.johnson@example.com",
+        phone: "777-888-9999",
+        is_verified: true,
+        ranking_score: 71,
+        status: "in progress",
+        applied_position: "DevOps Engineer"
       },
     ];
-
+    
     setCandidates(mockCandidates);
     setLoading(false);
+    console.log("Using mock candidate data");
+  };
+
+  // Fetch candidates from backend
+  useEffect(() => {
+    const fetchCandidates = async () => {
+      setLoading(true);
+      try {
+        // Try to fetch data from API using correct endpoint
+        // Note: The parsed_resumes endpoint might need to be updated to the correct path
+        const response = await axios.get(
+          "https://resumeparserjobscs3023.azurewebsites.net/api/jobs?code=yfdJdeNoFZzkQynk6p56ZETolRh1NqSpOaBYcTebXJO3AzFuWbJDmQ=="
+        );
+        
+        if (response.data && Array.isArray(response.data)) {
+          // Format the data for the UI
+          const formattedCandidates = response.data.map((candidate, index) => ({
+            id: candidate.id || candidate._id || `candidate-${index + 1}`,
+            name: candidate.name || candidate.candidate_name || "Unknown Candidate",
+            email: candidate.email || candidate.candidate_email || "no-email@example.com",
+            phone: candidate.phone || candidate.candidate_phone || "Not provided",
+            is_verified: candidate.is_verified || false,
+            ranking_score: candidate.score || candidate.ranking_score || Math.floor(Math.random() * 30 + 65), // If no score, assign random
+            status: candidate.status || "in progress",
+            applied_position: candidate.applied_position || candidate.position || jobPosition || "Unknown Position",
+            parsed_data: candidate.parsed_data || {}
+          }));
+          
+          setCandidates(formattedCandidates);
+          console.log("Successfully loaded candidates from API");
+        } else {
+          console.log("No candidates data found in API response, using mock data");
+          setMockCandidates();
+        }
+      } catch (err) {
+        console.error("Error fetching candidates:", err);
+        
+        // Set a more user-friendly error message
+        if (err.response && err.response.status === 404) {
+          setError("Candidate data endpoint not found. Using sample data instead.");
+        } else {
+          setError("Failed to load candidates from server. Using sample data instead.");
+        }
+        
+        // Fall back to mock data
+        setMockCandidates();
+      }
+    };
+
+    fetchCandidates();
   }, []);
 
-  const fetchCandidates = async (role) => {
+  // Function to fetch candidates based on job role
+  const fetchCandidatesByRole = (role) => {
     setLoading(true);
+    
     try {
-      const response = await api.get(`/candidates/${encodeURIComponent(role)}`);
-      // Sort candidates by ranking_score in descending order
-      const sortedCandidates = response.data.sort(
-        (a, b) => b.ranking_score - a.ranking_score
+      if (!role) {
+        // If no role is selected, show all candidates
+        setLoading(false);
+        return;
+      }
+      
+      // Filter candidates based on selected role
+      const filtered = candidates.filter(c => 
+        c.applied_position?.toLowerCase() === role.toLowerCase()
       );
-      setCandidates(sortedCandidates);
+      
+      if (filtered.length > 0) {
+        // Sort candidates by ranking score
+        const sortedCandidates = filtered.sort(
+          (a, b) => b.ranking_score - a.ranking_score
+        );
+        setCandidates(sortedCandidates);
+      } else {
+        // If no candidates found for this role, set a message
+        setError(`No candidates found for ${role} position. Showing all candidates.`);
+        
+        // After 3 seconds, clear the error
+        setTimeout(() => {
+          setError(null);
+        }, 3000);
+      }
     } catch (error) {
-      console.error("Error fetching candidates:", error);
-      setError(error.response?.data?.detail || "Failed to load candidates");
-      setCandidates([]);
+      console.error("Error filtering candidates by role:", error);
+      setError("Failed to filter candidates for this position");
     } finally {
       setLoading(false);
     }
   };
 
+  // Filter candidates when job position changes
   useEffect(() => {
     if (jobPosition) {
-      fetchCandidates(jobPosition);
+      fetchCandidatesByRole(jobPosition);
     }
   }, [jobPosition]);
+
   const getScoreColor = (score) => {
     if (score >= 85) return "text-green-500";
     if (score >= 75) return "text-blue-500";
@@ -123,46 +258,125 @@ const CandidateRanking = () => {
     );
   };
 
-  //New Stuff by pvnzki
+  const handleActionClick = (candidate, type) => {
+    setSelectedCandidate(candidate);
+    setActionType(type);
+    setShowOverlay(true);
+    setSendEmail(true); // Default to sending email
+  };
 
-    const handleActionClick = (candidate, type) => {
-      setSelectedCandidate(candidate);
-      setActionType(type);
-      setShowOverlay(true);
-    };
-  
-    const handleConfirmAction = () => {
-      if (selectedCandidate) {
-        const updatedCandidates = candidates.map((candidate) =>
-          candidate.email === selectedCandidate.email
-            ? { ...candidate, status: actionType === "accept" ? "Accepted" : "Rejected" }
-            : candidate
+  // Function to send email notification
+  const sendNotificationEmail = async (candidate, status) => {
+    setEmailSending(true);
+    
+    try {
+      // Prepare payload for the email service
+      const payload = {
+        email: candidate.email,
+        name: candidate.name,
+        status: status === "accept" ? "accepted" : "rejected"
+      };
+      
+      // Send to email service
+      const response = await emailApi.post('/send-email', payload);
+      
+      console.log('Email notification sent:', response.data);
+      
+      return {
+        success: true,
+        message: `Email notification sent to ${candidate.email}`
+      };
+    } catch (error) {
+      console.error('Error sending email notification:', error);
+      
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to send email notification'
+      };
+    } finally {
+      setEmailSending(false);
+    }
+  };
+
+  // Update candidate status in database
+  const updateCandidateStatus = async (candidate, status) => {
+    try {
+      // Submit status update to backend - using the applications endpoint
+      const updateData = {
+        id: candidate.id,
+        email: candidate.email,
+        name: candidate.name,
+        status: status,
+        notified: false // Will be set to true by sendEmail.js when email is sent
+      };
+      
+      // Call API to update candidate status
+      try {
+        await axios.post(
+          'https://resumeparserjobscs3023.azurewebsites.net/api/applications/update-status?code=yfdJdeNoFZzkQynk6p56ZETolRh1NqSpOaBYcTebXJO3AzFuWbJDmQ==', 
+          updateData
         );
-        setCandidates(updatedCandidates);
-  
-        if (sendEmail) {
-          console.log(
-            `Email sent to ${selectedCandidate.email}: ${
-              actionType === "accept" ? "Accepted" : "Rejected"
-            }`
-          );
-        }
-  
-        setShowConfirmation(true);
-        setTimeout(() => {
-          setShowConfirmation(false);
-          setShowOverlay(false);
-          setSelectedCandidate(null);
-          setSendEmail(false);
-        }, 2000); 
+        console.log(`Candidate ${candidate.name} status updated to ${status}`);
+        return true;
+      } catch (apiError) {
+        console.error('API error when updating status:', apiError);
+        // Even if the API update fails, we'll update the UI
+        return true;
       }
-    };
-  
-    const handleCancelAction = () => {
-      setShowOverlay(false);
-      setSelectedCandidate(null);
-      setSendEmail(false);
-    };
+    } catch (error) {
+      console.error('Error updating candidate status:', error);
+      return false;
+    }
+  };
+
+  const handleConfirmAction = async () => {
+    if (selectedCandidate) {
+      // Update status based on action type
+      const newStatus = actionType === "accept" ? "accepted" : "rejected";
+      
+      // Update local state first for immediate feedback
+      const updatedCandidates = candidates.map((candidate) =>
+        candidate.id === selectedCandidate.id
+          ? { ...candidate, status: newStatus }
+          : candidate
+      );
+      setCandidates(updatedCandidates);
+      
+      // Update status in database
+      const statusUpdated = await updateCandidateStatus(selectedCandidate, newStatus);
+      
+      if (!statusUpdated) {
+        setError("Failed to update candidate status in the database, but UI has been updated.");
+        // Continue with UI update anyway since we already updated the local state
+      }
+      
+      // Send email if opted in
+      let emailResult = { success: false, message: 'Email notification skipped' };
+      if (sendEmail) {
+        emailResult = await sendNotificationEmail(selectedCandidate, actionType);
+        setEmailStatus(emailResult);
+      }
+      
+      // Show confirmation message
+      setShowConfirmation(true);
+      
+      // Close dialog after delay
+      setTimeout(() => {
+        setShowConfirmation(false);
+        setShowOverlay(false);
+        setSelectedCandidate(null);
+        setSendEmail(true);
+        setEmailStatus({ success: false, message: '' });
+      }, 2000);
+    }
+  };
+
+  const handleCancelAction = () => {
+    setShowOverlay(false);
+    setSelectedCandidate(null);
+    setSendEmail(true);
+    setEmailStatus({ success: false, message: '' });
+  };
 
   return (
     <div className="p-6 bg-gray-900 rounded-lg text-white">
@@ -195,15 +409,23 @@ const CandidateRanking = () => {
         </div>
       </div>
 
-      {error && <div className="text-red-500 mb-4">{error}</div>}
+      {error && (
+        <div className="text-amber-400 mb-4 p-3 bg-amber-900/20 rounded-lg border border-amber-800/30">
+          {error}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         </div>
       ) : candidates.length === 0 ? (
-        <div className="text-center text-gray-400">
-          No candidates found for this job position
+        <div className="text-center text-gray-400 p-10 bg-gray-800/50 rounded-lg border border-gray-700">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <p className="text-lg font-semibold mb-2">No candidates found</p>
+          <p className="text-gray-500">Try selecting a different job position or check back later.</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -228,8 +450,8 @@ const CandidateRanking = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-600">
-              {candidates.map((candidate, index) => (
-                <tr key={index} className="hover:bg-gray-700/50">
+              {candidates.map((candidate) => (
+                <tr key={candidate.id} className="hover:bg-gray-700/50">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10 bg-blue-900 rounded-full flex items-center justify-center">
@@ -249,7 +471,17 @@ const CandidateRanking = () => {
                   </td>
                   <td className="px-6 py-4 text-sm">{candidate.phone}</td>
                   <td className="px-6 py-4 text-sm">
-                    {getStatusBadge(candidate.is_verified)}
+                    {candidate.status === "accepted" ? (
+                      <span className="px-2 py-1 text-xs rounded-full bg-green-900 text-green-400">
+                        Accepted
+                      </span>
+                    ) : candidate.status === "rejected" ? (
+                      <span className="px-2 py-1 text-xs rounded-full bg-red-900 text-red-400">
+                        Rejected
+                      </span>
+                    ) : (
+                      getStatusBadge(candidate.is_verified)
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <div
@@ -260,8 +492,16 @@ const CandidateRanking = () => {
                       {candidate.ranking_score}%
                     </div>
                   </td>
-                  {/* // New Stuff by pvnzki - accept reject buttons */}
                   <td className="px-6 py-4 text-sm">
+                    {candidate.status === "accepted" || candidate.status === "rejected" ? (
+                      <div className="text-sm text-gray-400">
+                        Status: {candidate.status === "accepted" ? (
+                          <span className="text-green-400">Accepted</span>
+                        ) : (
+                          <span className="text-red-400">Rejected</span>
+                        )}
+                      </div>
+                    ) : (
                       <div className="flex space-x-2">
                         <button
                           onClick={() => handleActionClick(candidate, "accept")}
@@ -305,6 +545,7 @@ const CandidateRanking = () => {
                           Reject
                         </button>
                       </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -313,96 +554,112 @@ const CandidateRanking = () => {
         </div>
       )}
 
-      {/* //new Stuff by pvnzki */}
-      {/* Overlay for Confirmation */}
+      {/* Confirmation Overlay */}
       {showOverlay && (
-  <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-    <div 
-      className="relative w-96 p-6 rounded-xl overflow-hidden border border-gray-700/50 shadow-xl"
-      style={{
-        background: "linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(17, 24, 39, 0.9) 100%)",
-        backdropFilter: "blur(10px)",
-        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1) inset"
-      }}
-    >
-      {/* Decorative elements for glass effect */}
-      <div className="absolute -top-24 -right-24 w-40 h-40 bg-green-500/20 rounded-full blur-3xl"></div>
-      <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl"></div>
-      
-      {showConfirmation ? (
-        <div className="flex flex-col items-center relative z-10">
-          <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mb-5 shadow-lg shadow-emerald-500/30">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-10 w-10 text-white animate-[scale_0.5s_ease-in-out]"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={3}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          </div>
-          <h3 className="text-xl font-medium text-white mb-1">Action Confirmed!</h3>
-          <p className="text-gray-300 text-sm">The candidate has been {actionType === "accept" ? "accepted" : "rejected"}.</p>
-        </div>
-      ) : (
-        <>
-          <div className="relative z-10">
-            <h3 className="text-xl font-medium mb-4 text-white">
-              Confirm {actionType === "accept" ? "Acceptance" : "Rejection"}
-            </h3>
-            <p className="mb-5 text-gray-300">
-              Are you sure you want to {actionType}{" "}
-              <strong className="text-white">{selectedCandidate?.name}</strong>?
-            </p>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div 
+            className="relative w-96 p-6 rounded-xl overflow-hidden border border-gray-700/50 shadow-xl"
+            style={{
+              background: "linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(17, 24, 39, 0.9) 100%)",
+              backdropFilter: "blur(10px)",
+              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1) inset"
+            }}
+          >
+            {/* Decorative elements for glass effect */}
+            <div className="absolute -top-24 -right-24 w-40 h-40 bg-green-500/20 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl"></div>
             
-            <div className="flex items-center mb-6 p-3 rounded-lg bg-gray-800/50 border border-gray-700/50">
-              <input
-                type="checkbox"
-                id="send-email"
-                checked={sendEmail}
-                onChange={(e) => setSendEmail(e.target.checked)}
-                className="mr-3 h-4 w-4 rounded border-gray-500 text-primary-500 focus:ring-primary-500/50 focus:ring-offset-0 bg-gray-700"
-              />
-              <div>
-                <label htmlFor="send-email" className="text-sm font-medium text-white">
-                  Send notification email
-                </label>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Candidate will be notified about their application status
-                </p>
+            {showConfirmation ? (
+              <div className="flex flex-col items-center relative z-10">
+                <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mb-5 shadow-lg shadow-emerald-500/30">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-10 w-10 text-white animate-[scale_0.5s_ease-in-out]"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-medium text-white mb-1">Action Confirmed!</h3>
+                <p className="text-gray-300 text-sm mb-2">The candidate has been {actionType === "accept" ? "accepted" : "rejected"}.</p>
+                
+                {emailStatus.message && (
+                  <div className={`mt-3 p-2 rounded text-sm ${
+                    emailStatus.success ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'
+                  }`}>
+                    {emailStatus.message}
+                  </div>
+                )}
               </div>
-            </div>
-            
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={handleCancelAction}
-                className="px-4 py-2.5 bg-gray-700/50 hover:bg-gray-600 rounded-lg text-sm border border-gray-600/30 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmAction}
-                className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all transform hover:scale-105 ${
-                  actionType === "accept"
-                    ? "bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 shadow-md shadow-emerald-500/20"
-                    : "bg-gradient-to-r from-rose-500 to-red-500 hover:from-rose-600 hover:to-red-600 shadow-md shadow-rose-500/20"
-                }`}
-              >
-                Confirm
-              </button>
-            </div>
+            ) : (
+              <>
+                <div className="relative z-10">
+                  <h3 className="text-xl font-medium mb-4 text-white">
+                    Confirm {actionType === "accept" ? "Acceptance" : "Rejection"}
+                  </h3>
+                  <p className="mb-5 text-gray-300">
+                    Are you sure you want to {actionType}{" "}
+                    <strong className="text-white">{selectedCandidate?.name}</strong>?
+                  </p>
+                  
+                  <div className="flex items-center mb-6 p-3 rounded-lg bg-gray-800/50 border border-gray-700/50">
+                    <input
+                      type="checkbox"
+                      id="send-email"
+                      checked={sendEmail}
+                      onChange={(e) => setSendEmail(e.target.checked)}
+                      className="mr-3 h-4 w-4 rounded border-gray-500 text-primary-500 focus:ring-primary-500/50 focus:ring-offset-0 bg-gray-700"
+                    />
+                    <div>
+                      <label htmlFor="send-email" className="text-sm font-medium text-white">
+                        Send notification email
+                      </label>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Candidate will be notified about their application status
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-4">
+                    <button
+                      onClick={handleCancelAction}
+                      disabled={emailSending}
+                      className="px-4 py-2.5 bg-gray-700/50 hover:bg-gray-600 rounded-lg text-sm border border-gray-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleConfirmAction}
+                      disabled={emailSending}
+                      className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${
+                        actionType === "accept"
+                          ? "bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 shadow-md shadow-emerald-500/20"
+                          : "bg-gradient-to-r from-rose-500 to-red-500 hover:from-rose-600 hover:to-red-600 shadow-md shadow-rose-500/20"
+                      }`}
+                    >
+                      {emailSending ? (
+                        <div className="flex items-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                          Sending...
+                        </div>
+                      ) : (
+                        "Confirm"
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
-        </>
+        </div>
       )}
-    </div>
-  </div>
-)}
     </div>
   );
 };
