@@ -1,241 +1,226 @@
-import { useState, useEffect } from 'react';
-import { getCandidateRankings } from '../../services/api';
+import { useState, useEffect } from "react";
+import axios from "axios";
+
+const api = axios.create({
+  baseURL: "http://localhost:9000",
+});
 
 const CandidateRanking = () => {
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [jobPosition, setJobPosition] = useState('Software Engineer');
-  const [sortBy, setSortBy] = useState('score');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [jobList, setJobList] = useState([]);
+  const [jobPosition, setJobPosition] = useState("");
+  const [error, setError] = useState(null);
 
-  // Sample data for demonstration
-  const mockCandidates = [
-    {
-      id: '000010',
-      name: 'Queen Pluml',
-      email: 'queen@pluml.com',
-      education: 'CS Undergraduate, University of Moratuwa',
-      score: 92,
-      status: 'Valid',
-      skillMatch: 87,
-      experienceMatch: 82,
-      decisionPath: [
-        'Education: CS Degree (+30)',
-        'Top Skills: ML, Python, Data Analysis (+25)',
-        'Experience: 1-3 years (+15)',
-        'Keywords: algorithm, data structures (+12)',
-        'Projects: 3 relevant (+10)'
-      ]
-    },
-    {
-      id: '00003A',
-      name: 'Since Johny',
-      email: 'johny@since.com',
-      education: 'CS Undergraduate, University of Colombo',
-      score: 88,
-      status: 'Valid',
-      skillMatch: 92,
-      experienceMatch: 75,
-      decisionPath: [
-        'Education: CS Degree (+30)',
-        'Top Skills: React, Node.js, MongoDB (+22)',
-        'Experience: 1-2 years (+12)',
-        'Keywords: fullstack, web development (+14)',
-        'Projects: 4 relevant (+10)'
-      ]
-    },
-    {
-      id: '00004F',
-      name: 'Buri Santoso',
-      email: 'owner@buri.com',
-      education: 'SE Undergraduate, SLIIT',
-      score: 84,
-      status: 'Valid',
-      skillMatch: 80,
-      experienceMatch: 79,
-      decisionPath: [
-        'Education: SE Degree (+28)',
-        'Top Skills: Java, Spring, Microservices (+20)',
-        'Experience: 1-2 years (+12)',
-        'Keywords: backend, API (+14)',
-        'Projects: 3 relevant (+10)'
-      ]
-    },
-    {
-      id: '00002C',
-      name: 'Thanudi',
-      email: 'thanudi@outlook.com',
-      education: 'IT Undergraduate, University of Moratuwa',
-      score: 76,
-      status: 'Pending',
-      skillMatch: 75,
-      experienceMatch: 68,
-      decisionPath: [
-        'Education: IT Degree (+25)',
-        'Top Skills: UX/UI, Design, Frontend (+18)',
-        'Experience: 0-1 years (+8)',
-        'Keywords: user interface, wireframing (+15)',
-        'Projects: 2 relevant (+10)'
-      ]
-    },
-    {
-      id: '0000BH',
-      name: 'Dan Piyasad',
-      email: 'dan@piyasad.com',
-      education: 'SE Undergraduate, IIT',
-      score: 72,
-      status: 'Pending',
-      skillMatch: 69,
-      experienceMatch: 65,
-      decisionPath: [
-        'Education: SE Degree (+28)',
-        'Top Skills: PHP, Laravel, MySQL (+15)',
-        'Experience: 0-1 years (+8)',
-        'Keywords: database, backend (+11)',
-        'Projects: 2 relevant (+10)'
-      ]
-    },
-    {
-      id: '00007J',
-      name: 'Mark Suckerberg',
-      email: 'mark@example.com',
-      education: 'SE Undergraduate, NSBM',
-      score: 68,
-      status: 'Pending',
-      skillMatch: 65,
-      experienceMatch: 60,
-      decisionPath: [
-        'Education: SE Degree (+28)',
-        'Top Skills: .NET, C#, SQL Server (+15)',
-        'Experience: 0-1 years (+8)',
-        'Keywords: enterprise, windows (+7)',
-        'Projects: 1 relevant (+10)'
-      ]
-    }
-  ];
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [actionType, setActionType] = useState(""); // "accept" or "reject"
+  const [sendEmail, setSendEmail] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false); // For confirmation tick animation
 
   useEffect(() => {
-    const fetchCandidates = async () => {
-      setLoading(true);
+    const fetchJobRoles = async () => {
       try {
-        // In a real app, you would call the API
-        // const data = await getCandidateRankings(jobPosition);
-        // setCandidates(data);
-        
-        // Using mock data for demonstration
-        setTimeout(() => {
-          let filteredCandidates = [...mockCandidates];
-          
-          // Apply status filter
-          if (filterStatus !== 'all') {
-            filteredCandidates = filteredCandidates.filter(c => c.status === filterStatus);
-          }
-          
-          // Apply sorting
-          filteredCandidates.sort((a, b) => {
-            if (sortBy === 'score') return b.score - a.score;
-            if (sortBy === 'skillMatch') return b.skillMatch - a.skillMatch;
-            if (sortBy === 'experienceMatch') return b.experienceMatch - a.experienceMatch;
-            return 0;
-          });
-          
-          setCandidates(filteredCandidates);
-          setLoading(false);
-        }, 800);
+        const response = await api.get("/jobs/titles");
+        const titles = response.data.titles;
+        setJobList(titles);
       } catch (err) {
-        console.error('Failed to fetch candidates:', err);
+        console.error("Error fetching job roles:", err);
+        setError("Failed to load job roles");
+      } finally {
         setLoading(false);
       }
     };
 
-    fetchCandidates();
-  }, [jobPosition, sortBy, filterStatus]);
+    fetchJobRoles();
+  }, 
+  
+  []);
 
-  const getScoreColor = (score) => {
-    if (score >= 85) return 'text-green-500';
-    if (score >= 75) return 'text-blue-500';
-    if (score >= 65) return 'text-yellow-500';
-    return 'text-red-500';
-  };
+   // Mock data for testing
+   useEffect(() => {
+    const mockCandidates = [
+      {
+        id: 1,
+        name: "John Doe",
+        email: "john.doe@example.com",
+        phone: "123-456-7890",
+        is_verified: true,
+        ranking_score: 85,
+      },
+      {
+        id: 2,
+        name: "Jane Smith",
+        email: "jane.smith@example.com",
+        phone: "987-654-3210",
+        is_verified: false,
+        ranking_score: 78,
+      },
+      {
+        id: 3,
+        name: "Alice Johnson",
+        email: "alice.johnson@example.com",
+        phone: "555-123-4567",
+        is_verified: true,
+        ranking_score: 92,
+      },
+      {
+        id: 4,
+        name: "Bob Brown",
+        email: "bob.brown@example.com",
+        phone: "444-555-6666",
+        is_verified: false,
+        ranking_score: 65,
+      },
+    ];
 
-  const getStatusBadge = (status) => {
-    if (status === 'Valid') {
-      return <span className="px-2 py-1 text-xs rounded-full bg-green-900 text-green-400">Valid</span>;
+    setCandidates(mockCandidates);
+    setLoading(false);
+  }, []);
+
+  const fetchCandidates = async (role) => {
+    setLoading(true);
+    try {
+      const response = await api.get(`/candidates/${encodeURIComponent(role)}`);
+      // Sort candidates by ranking_score in descending order
+      const sortedCandidates = response.data.sort(
+        (a, b) => b.ranking_score - a.ranking_score
+      );
+      setCandidates(sortedCandidates);
+    } catch (error) {
+      console.error("Error fetching candidates:", error);
+      setError(error.response?.data?.detail || "Failed to load candidates");
+      setCandidates([]);
+    } finally {
+      setLoading(false);
     }
-    return <span className="px-2 py-1 text-xs rounded-full bg-gray-700 text-gray-300">Pending</span>;
   };
+
+  useEffect(() => {
+    if (jobPosition) {
+      fetchCandidates(jobPosition);
+    }
+  }, [jobPosition]);
+  const getScoreColor = (score) => {
+    if (score >= 85) return "text-green-500";
+    if (score >= 75) return "text-blue-500";
+    if (score >= 65) return "text-yellow-500";
+    return "text-red-500";
+  };
+
+  const getStatusBadge = (isVerified) => {
+    if (isVerified) {
+      return (
+        <span className="px-2 py-1 text-xs rounded-full bg-green-900 text-green-400">
+          Valid
+        </span>
+      );
+    }
+    return (
+      <span className="px-2 py-1 text-xs rounded-full bg-gray-700 text-gray-300">
+        Pending
+      </span>
+    );
+  };
+
+  //New Stuff by pvnzki
+
+    const handleActionClick = (candidate, type) => {
+      setSelectedCandidate(candidate);
+      setActionType(type);
+      setShowOverlay(true);
+    };
+  
+    const handleConfirmAction = () => {
+      if (selectedCandidate) {
+        const updatedCandidates = candidates.map((candidate) =>
+          candidate.email === selectedCandidate.email
+            ? { ...candidate, status: actionType === "accept" ? "Accepted" : "Rejected" }
+            : candidate
+        );
+        setCandidates(updatedCandidates);
+  
+        if (sendEmail) {
+          console.log(
+            `Email sent to ${selectedCandidate.email}: ${
+              actionType === "accept" ? "Accepted" : "Rejected"
+            }`
+          );
+        }
+  
+        setShowConfirmation(true);
+        setTimeout(() => {
+          setShowConfirmation(false);
+          setShowOverlay(false);
+          setSelectedCandidate(null);
+          setSendEmail(false);
+        }, 2000); 
+      }
+    };
+  
+    const handleCancelAction = () => {
+      setShowOverlay(false);
+      setSelectedCandidate(null);
+      setSendEmail(false);
+    };
 
   return (
     <div className="p-6 bg-gray-900 rounded-lg text-white">
       <div className="flex flex-wrap justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold">AI Candidate Ranking</h2>
-        
+        <h2 className="text-2xl font-semibold">Candidate Ranking</h2>
         <div className="flex space-x-4 mt-2 sm:mt-0">
           <div>
-            <label htmlFor="job-position" className="block text-sm font-medium text-gray-400 mb-1">Job Position</label>
+            <label
+              htmlFor="job-position"
+              className="block text-sm font-medium text-gray-400 mb-1"
+            >
+              Select Job Position
+            </label>
             <select
               id="job-position"
               value={jobPosition}
               onChange={(e) => setJobPosition(e.target.value)}
               className="bg-gray-800 border border-gray-700 text-white py-1 px-3 rounded focus:outline-none focus:border-blue-500 text-sm"
             >
-              <option value="Software Engineer">Software Engineer</option>
-              <option value="Data Scientist">Data Scientist</option>
-              <option value="UX Designer">UX Designer</option>
-              <option value="Product Manager">Product Manager</option>
-            </select>
-          </div>
-          
-          <div>
-            <label htmlFor="sort-by" className="block text-sm font-medium text-gray-400 mb-1">Sort By</label>
-            <select
-              id="sort-by"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="bg-gray-800 border border-gray-700 text-white py-1 px-3 rounded focus:outline-none focus:border-blue-500 text-sm"
-            >
-              <option value="score">Overall Score</option>
-              <option value="skillMatch">Skill Match</option>
-              <option value="experienceMatch">Experience Match</option>
-            </select>
-          </div>
-          
-          <div>
-            <label htmlFor="filter-status" className="block text-sm font-medium text-gray-400 mb-1">Status</label>
-            <select
-              id="filter-status"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="bg-gray-800 border border-gray-700 text-white py-1 px-3 rounded focus:outline-none focus:border-blue-500 text-sm"
-            >
-              <option value="all">All</option>
-              <option value="Valid">Valid</option>
-              <option value="Pending">Pending</option>
+              <option value="" disabled hidden>
+                -- Select Job Position --
+              </option>
+              {jobList.map((job, index) => (
+                <option key={index} value={job}>
+                  {job}
+                </option>
+              ))}
             </select>
           </div>
         </div>
       </div>
 
+      {error && <div className="text-red-500 mb-4">{error}</div>}
+
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      ) : candidates.length === 0 ? (
+        <div className="text-center text-gray-400">
+          No candidates found for this job position
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full bg-gray-800 rounded-lg overflow-hidden">
             <thead className="bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Candidate</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Education</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Overall Score
+                  Candidate
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Skill Match
+                  Phone Number
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Experience Match
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  Resume Score
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   Actions
@@ -243,47 +228,83 @@ const CandidateRanking = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-600">
-              {candidates.map((candidate) => (
-                <tr key={candidate.id} className="hover:bg-gray-700/50">
+              {candidates.map((candidate, index) => (
+                <tr key={index} className="hover:bg-gray-700/50">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10 bg-blue-900 rounded-full flex items-center justify-center">
-                        <span className="font-medium text-lg">{candidate.name.charAt(0)}</span>
+                        <span className="font-medium text-lg">
+                          {candidate.name.charAt(0)}
+                        </span>
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium">{candidate.name}</div>
-                        <div className="text-sm text-gray-400">{candidate.email}</div>
+                        <div className="text-sm font-medium">
+                          {candidate.name}
+                        </div>
+                        <div className="text-sm text-gray-400">
+                          {candidate.email}
+                        </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm">{candidate.education}</td>
-                  <td className="px-6 py-4 text-sm">{getStatusBadge(candidate.status)}</td>
-                  <td className="px-6 py-4">
-                    <div className={`text-lg font-bold ${getScoreColor(candidate.score)}`}>
-                      {candidate.score}%
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="w-full bg-gray-700 rounded-full h-2">
-                      <div 
-                        className="bg-blue-500 h-2 rounded-full" 
-                        style={{ width: `${candidate.skillMatch}%` }}
-                      ></div>
-                    </div>
-                    <div className="text-xs mt-1 text-center">{candidate.skillMatch}%</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="w-full bg-gray-700 rounded-full h-2">
-                      <div 
-                        className="bg-green-500 h-2 rounded-full" 
-                        style={{ width: `${candidate.experienceMatch}%` }}
-                      ></div>
-                    </div>
-                    <div className="text-xs mt-1 text-center">{candidate.experienceMatch}%</div>
-                  </td>
+                  <td className="px-6 py-4 text-sm">{candidate.phone}</td>
                   <td className="px-6 py-4 text-sm">
-                    <button className="text-blue-400 hover:text-blue-300 mr-3">View</button>
-                    <button className="text-green-400 hover:text-green-300">Details</button>
+                    {getStatusBadge(candidate.is_verified)}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div
+                      className={`text-lg font-bold ${getScoreColor(
+                        candidate.ranking_score
+                      )}`}
+                    >
+                      {candidate.ranking_score}%
+                    </div>
+                  </td>
+                  {/* // New Stuff by pvnzki - accept reject buttons */}
+                  <td className="px-6 py-4 text-sm">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleActionClick(candidate, "accept")}
+                          className="flex items-center justify-center px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white transition-all duration-200 group"
+                        >
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            className="h-4 w-4 mr-1.5 group-hover:scale-110 transition-transform duration-200" 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke="currentColor"
+                          >
+                            <path 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round" 
+                              strokeWidth={2} 
+                              d="M5 13l4 4L19 7" 
+                            />
+                          </svg>
+                          Accept
+                        </button>
+                        
+                        <button
+                          onClick={() => handleActionClick(candidate, "reject")}
+                          className="flex items-center justify-center px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all duration-200 group"
+                        >
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            className="h-4 w-4 mr-1.5 group-hover:scale-110 transition-transform duration-200" 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke="currentColor"
+                          >
+                            <path 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round" 
+                              strokeWidth={2} 
+                              d="M6 18L18 6M6 6l12 12" 
+                            />
+                          </svg>
+                          Reject
+                        </button>
+                      </div>
                   </td>
                 </tr>
               ))}
@@ -292,31 +313,98 @@ const CandidateRanking = () => {
         </div>
       )}
 
-      {/* Decision Path Section */}
-      {candidates.length > 0 && (
-        <div className="mt-8 bg-gray-800 p-5 rounded-lg">
-          <h3 className="text-xl font-medium mb-4">Decision Path for Top Candidate</h3>
-          <div className="flex items-center mb-4">
-            <div className="flex-shrink-0 h-12 w-12 bg-blue-900 rounded-full flex items-center justify-center mr-4">
-              <span className="font-medium text-lg">{candidates[0].name.charAt(0)}</span>
-            </div>
-            <div>
-              <div className="text-lg font-medium">{candidates[0].name}</div>
-              <div className="text-sm text-gray-400">{candidates[0].email}</div>
-            </div> 
+      {/* //new Stuff by pvnzki */}
+      {/* Overlay for Confirmation */}
+      {showOverlay && (
+  <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+    <div 
+      className="relative w-96 p-6 rounded-xl overflow-hidden border border-gray-700/50 shadow-xl"
+      style={{
+        background: "linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(17, 24, 39, 0.9) 100%)",
+        backdropFilter: "blur(10px)",
+        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1) inset"
+      }}
+    >
+      {/* Decorative elements for glass effect */}
+      <div className="absolute -top-24 -right-24 w-40 h-40 bg-green-500/20 rounded-full blur-3xl"></div>
+      <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl"></div>
+      
+      {showConfirmation ? (
+        <div className="flex flex-col items-center relative z-10">
+          <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mb-5 shadow-lg shadow-emerald-500/30">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-10 w-10 text-white animate-[scale_0.5s_ease-in-out]"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={3}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
           </div>
-          <div className="space-y-2">
-            {candidates[0].decisionPath.map((step, index) => (
-              <div key={index} className="flex items-center">
-                <div className="h-4 w-4 bg-blue-500 rounded-full mr-3"></div>
-                <div className="text-sm text-gray-300">{step}</div>
-              </div>
-            ))}
-          </div>
+          <h3 className="text-xl font-medium text-white mb-1">Action Confirmed!</h3>
+          <p className="text-gray-300 text-sm">The candidate has been {actionType === "accept" ? "accepted" : "rejected"}.</p>
         </div>
+      ) : (
+        <>
+          <div className="relative z-10">
+            <h3 className="text-xl font-medium mb-4 text-white">
+              Confirm {actionType === "accept" ? "Acceptance" : "Rejection"}
+            </h3>
+            <p className="mb-5 text-gray-300">
+              Are you sure you want to {actionType}{" "}
+              <strong className="text-white">{selectedCandidate?.name}</strong>?
+            </p>
+            
+            <div className="flex items-center mb-6 p-3 rounded-lg bg-gray-800/50 border border-gray-700/50">
+              <input
+                type="checkbox"
+                id="send-email"
+                checked={sendEmail}
+                onChange={(e) => setSendEmail(e.target.checked)}
+                className="mr-3 h-4 w-4 rounded border-gray-500 text-primary-500 focus:ring-primary-500/50 focus:ring-offset-0 bg-gray-700"
+              />
+              <div>
+                <label htmlFor="send-email" className="text-sm font-medium text-white">
+                  Send notification email
+                </label>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Candidate will be notified about their application status
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={handleCancelAction}
+                className="px-4 py-2.5 bg-gray-700/50 hover:bg-gray-600 rounded-lg text-sm border border-gray-600/30 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmAction}
+                className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all transform hover:scale-105 ${
+                  actionType === "accept"
+                    ? "bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 shadow-md shadow-emerald-500/20"
+                    : "bg-gradient-to-r from-rose-500 to-red-500 hover:from-rose-600 hover:to-red-600 shadow-md shadow-rose-500/20"
+                }`}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </>
       )}
+    </div>
+  </div>
+)}
     </div>
   );
 };
 
-export default CandidateRanking; // Ensure this is exporting as default
+export default CandidateRanking;

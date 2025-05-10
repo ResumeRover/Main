@@ -120,6 +120,7 @@ async def get_job_id_by_role(role: str):
     job = await job_collection.find_one({"title": role}, {"_id": 1})
     return str(job["_id"]) if job else None
 
+
 # MongoDB change stream watcher
 async def watch_collection_changes(collection_name=COLLECTION_NAME):
     """Watch for changes in the MongoDB collection and broadcast to all connected clients."""
@@ -265,6 +266,30 @@ async def job_specific_websocket(websocket: WebSocket, job_role: str):
         manager.disconnect(websocket)
         print(f"Client for job {job_role} disconnected")
 
+@app.get("/candidates/{job_role}")
+def get_candidates_by_job_role(job_role: str = Path(..., description="Job role name")):
+    job_id = get_job_id_by_role(job_role)
+    if not job_id:
+        return {"error": f"Job role '{job_role}' not found"}
+
+    candidates = collection.find({"job_id": job_id})
+    result = []
+
+    for c in candidates:
+        result.append({
+            "name": c.get("name"),
+            "email": c.get("email"),
+            "ranking_score": c.get("ranking_score"),
+            "is_verified": c.get("is_verified"),
+            "phone": c.get("phone")
+        })
+
+    if not result:
+        raise HTTPException(status_code=404, detail="No candidates found for this job")
+
+    return result
+
+
 @app.get("/stats/summary/{job_role}")
 async def get_cv_summary(job_role: str = Path(..., description="Job role name")):
     job_id = await get_job_id_by_role(job_role)
@@ -272,17 +297,24 @@ async def get_cv_summary(job_role: str = Path(..., description="Job role name"))
         return {"error": f"Job role '{job_role}' not found"}
 
     query = {"job_id": job_id}
-    # Add await to these async operations
+
     total_submitted = await collection.count_documents(query)
-    total_processed = await collection.count_documents({**query, "status": {"$in": ["saved", "processed"]}})
-    total_passed = await collection.count_documents({**query, "status": "passed"})
+    total_processed = await collection.count_documents({**query, "status": "passed" }})
     total_rejected = await collection.count_documents({**query, "status": "rejected"})
+
+
+    pipeline = [
+        {"$match": query},
+        {"$group": {"_id": None, "average_score": {"$avg": "$ranking_score"}}}
+    ]
+    result = await list(collection.aggregate(pipeline))
+    average_score = result[0]["average_score"] if result else 0
 
     return {
         "job_role": job_role,
         "submitted": total_submitted,
         "processed": total_processed,
-        "passed": total_passed,
+        "avg_score": average_score,
         "rejected": total_rejected
     }
 
@@ -504,3 +536,6 @@ async def get_candidates_by_score_buckets(job_role: str = Path(..., description=
 
 
     return grouped_candidates
+
+
+    
