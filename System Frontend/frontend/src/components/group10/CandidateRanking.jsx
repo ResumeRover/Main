@@ -20,7 +20,9 @@ const emailApi = axios.create({
 
 
 const CandidateRanking = () => {
-  const [candidates, setCandidates] = useState([]);
+  // Store all candidates in one state and filtered candidates in another
+  const [allCandidates, setAllCandidates] = useState([]);
+  const [displayedCandidates, setDisplayedCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [jobList, setJobList] = useState([]);
   const [jobPosition, setJobPosition] = useState("");
@@ -72,76 +74,6 @@ const CandidateRanking = () => {
     fetchJobRoles();
   }, []);
 
-  // Set mock candidates data
-  const setMockCandidates = () => {
-    const mockCandidates = [
-      {
-        id: 1,
-        name: "John Doe",
-        email: "john.doe@example.com",
-        phone: "123-456-7890",
-        is_verified: true,
-        ranking_score: 85,
-        status: "in progress",
-        applied_position: "Frontend Developer"
-      },
-      {
-        id: 2,
-        name: "Jane Smith",
-        email: "jane.smith@example.com",
-        phone: "987-654-3210",
-        is_verified: false,
-        ranking_score: 78,
-        status: "in progress",
-        applied_position: "Backend Developer"
-      },
-      {
-        id: 3,
-        name: "Alice Johnson",
-        email: "alice.johnson@example.com",
-        phone: "555-123-4567",
-        is_verified: true,
-        ranking_score: 92,
-        status: "in progress",
-        applied_position: "Data Analyst"
-      },
-      {
-        id: 4,
-        name: "Bob Brown",
-        email: "bob.brown@example.com",
-        phone: "444-555-6666",
-        is_verified: false,
-        ranking_score: 65,
-        status: "in progress",
-        applied_position: "UI/UX Designer"
-      },
-      {
-        id: 5,
-        name: "Sara Wilson",
-        email: "sara.wilson@example.com",
-        phone: "222-333-4444",
-        is_verified: true,
-        ranking_score: 88,
-        status: "in progress",
-        applied_position: "Project Manager"
-      },
-      {
-        id: 6,
-        name: "Mike Johnson",
-        email: "mike.johnson@example.com",
-        phone: "777-888-9999",
-        is_verified: true,
-        ranking_score: 71,
-        status: "in progress",
-        applied_position: "DevOps Engineer"
-      },
-    ];
-    
-    setCandidates(mockCandidates);
-    setLoading(false);
-    console.log("Using mock candidate data");
-  };
-
   // Fetch candidates from backend
   useEffect(() => {
     const fetchCandidates = async () => {
@@ -150,10 +82,11 @@ const CandidateRanking = () => {
         // Try to fetch data from API using correct endpoint
         // Note: The parsed_resumes endpoint might need to be updated to the correct path
         const response = await axios.get(
-          "https://resumeparserjobscs3023.azurewebsites.net/api/jobs?code=yfdJdeNoFZzkQynk6p56ZETolRh1NqSpOaBYcTebXJO3AzFuWbJDmQ=="
+          "https://main-production-7511.up.railway.app/candidates/Senior Software Engineer"
         );
         
         if (response.data && Array.isArray(response.data)) {
+          console.log("Fetched candidates from API:", response.data);
           // Format the data for the UI
           const formattedCandidates = response.data.map((candidate, index) => ({
             id: candidate.id || candidate._id || `candidate-${index + 1}`,
@@ -167,11 +100,13 @@ const CandidateRanking = () => {
             parsed_data: candidate.parsed_data || {}
           }));
           
-          setCandidates(formattedCandidates);
+          // Update both candidate states
+          setAllCandidates(formattedCandidates);
+          setDisplayedCandidates(formattedCandidates);
           console.log("Successfully loaded candidates from API");
+          console.log("Candidates data:", formattedCandidates);
         } else {
           console.log("No candidates data found in API response, using mock data");
-          setMockCandidates();
         }
       } catch (err) {
         console.error("Error fetching candidates:", err);
@@ -185,36 +120,41 @@ const CandidateRanking = () => {
         
         // Fall back to mock data
         setMockCandidates();
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchCandidates();
   }, []);
 
-  // Function to fetch candidates based on job role
-  const fetchCandidatesByRole = (role) => {
+  // Function to filter candidates based on job role
+  const filterCandidatesByRole = (role) => {
     setLoading(true);
     
     try {
       if (!role) {
         // If no role is selected, show all candidates
+        setDisplayedCandidates(allCandidates);
         setLoading(false);
         return;
       }
       
-      // Filter candidates based on selected role
-      const filtered = candidates.filter(c => 
+      // Filter candidates based on selected role - from the complete list
+      const filtered = allCandidates.filter(c => 
         c.applied_position?.toLowerCase() === role.toLowerCase()
       );
       
       if (filtered.length > 0) {
         // Sort candidates by ranking score
-        const sortedCandidates = filtered.sort(
+        const sortedCandidates = [...filtered].sort(
           (a, b) => b.ranking_score - a.ranking_score
         );
-        setCandidates(sortedCandidates);
+        setDisplayedCandidates(sortedCandidates);
       } else {
-        // If no candidates found for this role, set a message
+        // If no candidates found for this role, show all candidates
+        setDisplayedCandidates(allCandidates);
+        // Set a message
         setError(`No candidates found for ${role} position. Showing all candidates.`);
         
         // After 3 seconds, clear the error
@@ -225,6 +165,8 @@ const CandidateRanking = () => {
     } catch (error) {
       console.error("Error filtering candidates by role:", error);
       setError("Failed to filter candidates for this position");
+      // Revert to showing all candidates on error
+      setDisplayedCandidates(allCandidates);
     } finally {
       setLoading(false);
     }
@@ -233,9 +175,12 @@ const CandidateRanking = () => {
   // Filter candidates when job position changes
   useEffect(() => {
     if (jobPosition) {
-      fetchCandidatesByRole(jobPosition);
+      filterCandidatesByRole(jobPosition);
+    } else {
+      // If job position is cleared, show all candidates
+      setDisplayedCandidates(allCandidates);
     }
-  }, [jobPosition]);
+  }, [jobPosition, allCandidates]);
 
   const getScoreColor = (score) => {
     if (score >= 85) return "text-green-500";
@@ -336,19 +281,26 @@ const CandidateRanking = () => {
       const newStatus = actionType === "accept" ? "accepted" : "rejected";
       
       // Update local state first for immediate feedback
-      const updatedCandidates = candidates.map((candidate) =>
+      // Update in both candidate arrays
+      const updatedAllCandidates = allCandidates.map((candidate) =>
         candidate.id === selectedCandidate.id
           ? { ...candidate, status: newStatus }
           : candidate
       );
-      setCandidates(updatedCandidates);
+      setAllCandidates(updatedAllCandidates);
+      
+      const updatedDisplayedCandidates = displayedCandidates.map((candidate) =>
+        candidate.id === selectedCandidate.id
+          ? { ...candidate, status: newStatus }
+          : candidate
+      );
+      setDisplayedCandidates(updatedDisplayedCandidates);
       
       // Update status in database
       const statusUpdated = await updateCandidateStatus(selectedCandidate, newStatus);
       
       if (!statusUpdated) {
         setError("Failed to update candidate status in the database, but UI has been updated.");
-        // Continue with UI update anyway since we already updated the local state
       }
       
       // Send email if opted in
@@ -397,9 +349,7 @@ const CandidateRanking = () => {
               onChange={(e) => setJobPosition(e.target.value)}
               className="bg-gray-800 border border-gray-700 text-white py-1 px-3 rounded focus:outline-none focus:border-blue-500 text-sm"
             >
-              <option value="" disabled hidden>
-                -- Select Job Position --
-              </option>
+              <option value="">All Positions</option>
               {jobList.map((job, index) => (
                 <option key={index} value={job}>
                   {job}
@@ -420,7 +370,7 @@ const CandidateRanking = () => {
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         </div>
-      ) : candidates.length === 0 ? (
+      ) : displayedCandidates.length === 0 ? (
         <div className="text-center text-gray-400 p-10 bg-gray-800/50 rounded-lg border border-gray-700">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -451,7 +401,7 @@ const CandidateRanking = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-600">
-              {candidates.map((candidate) => (
+              {displayedCandidates.map((candidate) => (
                 <tr key={candidate.id} className="hover:bg-gray-700/50">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
