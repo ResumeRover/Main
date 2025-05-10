@@ -9,7 +9,7 @@ import Plot from 'react-plotly.js';
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://forecastingcs3023.azurewebsites.net/api/forecast'
+  baseURL: 'https://forecastingcs3023.azurewebsites.net/api'
 });
 
 
@@ -30,7 +30,7 @@ const PredictiveModelPage = () => {
       const jobRole = localStorage.getItem('jobRole') 
       setJobRole(jobRole);
 
-      const response = await api.get(`/api/dashboard?job_role=${encodeURIComponent(jobRole)}`);
+      const response = await api.get(`forecast?job_role=${encodeURIComponent(jobRole)}`);
       if (response.data.status === 'error') {
         setErrorMessage(response.data.message);
       } else {
