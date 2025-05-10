@@ -5,6 +5,7 @@ import ThemeToggle from './ThemeToggle';
 import { Home, Info } from 'react-feather'; // Added Info icon for About section
 import { LogIn, Search } from 'react-feather'; // Added LogIn and Search icons for future use
 import { Menu } from 'react-feather'; // Added Menu icon for mobile navigation
+import img from "../public/assests/logox.png"
 
 
 const JobDetailsPage = ({ currentPage, selectedJob, handleBackClick, handleApplyClick }) => {
@@ -57,7 +58,7 @@ const JobDetailsPage = ({ currentPage, selectedJob, handleBackClick, handleApply
                     
                     {/* Logo image with subtle bounce */}
                     <img
-                      src="src\logox.png"
+                      src={img}
                       alt="Logo"
                       className="relative h-10 w-30 rounded-full animate-subtle-bounce z-10 drop-shadow-lg"
                     />

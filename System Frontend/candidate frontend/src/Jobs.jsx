@@ -8,6 +8,7 @@ import { LogIn } from 'react-feather';
 import JobSearchAndFilter from './JobSearchAndFilter';
 import { X } from 'react-feather';
 import axios from 'axios';
+import img from "../public/assests/logox.png"
 
 const Jobs = ({ currentPage, JOBS, handleJobClick, handleBackClick, setCurrentPage }) => {
   const { isDarkMode } = useContext(ThemeContext);
@@ -227,7 +228,7 @@ const Jobs = ({ currentPage, JOBS, handleJobClick, handleBackClick, setCurrentPa
                       
                       {/* Logo image with subtle bounce */}
                       <img
-                        src="src\logox.png"
+                        src={img}
                         alt="Logo"
                         className="relative h-10 w-30 rounded-full animate-subtle-bounce z-10 drop-shadow-lg"
                       />

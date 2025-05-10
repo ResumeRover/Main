@@ -16,6 +16,7 @@ import { ThemeContext } from "./ThemeContext";
 import ThemeToggle from "./ThemeToggle";
 import { LogIn, Menu } from "react-feather";
 import { Info, Home } from "react-feather";
+import img from "/logox.png"
 
 // Animation for skills
 const skills = [
@@ -109,7 +110,7 @@ const HomePage = ({ currentPage, setCurrentPage }) => {
                     
                     {/* Logo image with subtle bounce */}
                     <img
-                      src="src\logox.png"
+                      src={img}
                       alt="Logo"
                       className="relative h-10 w-30 rounded-full animate-subtle-bounce z-10 drop-shadow-lg"
                     />
