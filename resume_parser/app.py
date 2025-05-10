@@ -81,6 +81,18 @@ def extract_text_from_word(file_content: bytes) -> str:
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error processing Word file: {str(e)}")
 
+def update_response(resume_id: str, ranking_score: int) -> None:
+    # Update the application with the ranking score
+    resumes_collection.update_one(
+        {"resume_id": resume_id},
+        {
+            "$set": {
+                "status": "in progress",
+                "notified": False,
+                "ranking_score": ranking_score
+            }
+        }
+    )
 
 @app.post("/parse")
 async def parse_resume_endpoint(
@@ -137,7 +149,28 @@ async def parse_resume_endpoint(
         }
 
         # Save to database
-        result = resumes_collection.insert_one(resume_record)
+        result = await resumes_collection.insert_one(resume_record)
+
+        try:
+            import requests
+
+            ranking_score = requests.post(
+                "https://aicandidaterankingcs3023.azurewebsites.net/api/ranking",
+                json={
+                    "resumeID": result.inserted_id
+                }
+            )
+
+            update_response(result.inserted_id, ranking_score.json().get("ranking_score"))
+            
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Request to ranking service failed: {str(e)}")
+            return func.HttpResponse(
+                json.dumps({"error": "Failed to connect to the ranking service"}),
+                mimetype="application/json",
+                status_code=500
+            )
+
         
         return {
             "success": True,

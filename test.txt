@@ -1,0 +1,40 @@
+=========================== test session starts ===========================
+collecting ... collected 7 items
+
+test_mongodb_operations.py::test_insert_resume 
+Inserted resume with ID: 64fb1a9c8d56e2a1f4d7c34e
+Retrieved resume: John Doe
+PASSED
+
+test_mongodb_operations.py::test_update_resume 
+Updated resume ID: 64fb1a9c8d56e2a1f4d7c34f
+Skills after update: ['JavaScript', 'React', 'TypeScript']
+Verification status: True
+PASSED
+
+test_mongodb_operations.py::test_delete_resume 
+Deleted resume with ID: 64fb1a9c8d56e2a1f4d7c350
+Document count after deletion: 0
+PASSED
+
+test_mongodb_operations.py::test_query_resumes_by_skill 
+MongoDB developers: ['Dev One', 'Dev Two']
+Python developers: ['Dev One']
+Java developers: ['Dev Three']
+PASSED
+
+test_mongodb_operations.py::test_complex_aggregate_query 
+Aggregation results by experience level:
+  Mid: 1 developers, avg salary: $90000.00
+  Senior: 1 developers, avg salary: $120000.00
+PASSED
+
+test_mongodb_operations.py::test_job_candidate_matching 
+Candidate match scores for Senior Python Developer job:
+  Perfect Match: 93.33%
+  Partial Match: 80.00%
+  Skill Match But Junior: 70.00%
+  No Match: 0.00%
+PASSED
+
+=========================== 7 passed in 0.87s ============================
