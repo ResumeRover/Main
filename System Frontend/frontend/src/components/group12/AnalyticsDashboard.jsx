@@ -13,8 +13,8 @@ import {
 } from "@mui/material";
 import Plot from "react-plotly.js";
 import axios from "axios";
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
+// import { jsPDF } from "jspdf";
+// import html2canvas from "html2canvas";
 
 const api = axios.create({
   baseURL: "http://localhost:8000",
