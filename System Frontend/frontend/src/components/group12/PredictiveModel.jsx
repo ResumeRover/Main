@@ -9,7 +9,7 @@ import Plot from 'react-plotly.js';
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: "https://main-production-7511.up.railway.app/"
+  baseURL: 'https://forecastingcs3023.azurewebsites.net/api/forecast'
 });
 
 
