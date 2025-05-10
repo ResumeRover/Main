@@ -11,6 +11,9 @@ const JobDetailsPage = ({ currentPage, selectedJob, handleBackClick, handleApply
   const { isDarkMode } = useContext(ThemeContext);
   
   if (currentPage === 'job-details' && selectedJob) {
+    // Ensure responsibilities is always an array
+    const responsibilities = selectedJob.responsibilities || selectedJob.required_skills || [];
+    const responsibilitiesList = Array.isArray(responsibilities) ? responsibilities : [responsibilities];
     return (
       <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-900'} transition-colors duration-300`}>
         {/* Navigation */}
@@ -251,11 +254,11 @@ const JobDetailsPage = ({ currentPage, selectedJob, handleBackClick, handleApply
                 </div>
                 <div className="flex items-center text-gray-600 dark:text-gray-300">
                   <DollarSign size={16} className="mr-2" />
-                  <span>{selectedJob.salary}</span>
+                  <span>{selectedJob.salary_range || selectedJob.salary}</span>
                 </div>
               </div>
               <span className={`px-4 py-2 rounded-full text-sm font-medium ${isDarkMode ? 'bg-primary-900 text-primary-300' : 'bg-primary-100 text-primary-700'}`}>
-                {selectedJob.type}
+                {selectedJob.job_type || selectedJob.type}
               </span>
             </div>
             
@@ -265,10 +268,22 @@ const JobDetailsPage = ({ currentPage, selectedJob, handleBackClick, handleApply
               
               <h2 className="text-xl font-bold mb-4">Responsibilities</h2>
               <ul className="list-disc pl-5 mb-6">
-                {selectedJob.responsibilities.map((item, index) => (
-                  <li key={index} className={`mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{item}</li>
+                {responsibilitiesList.map((item, index) => (
+                  <li key={index} className={`mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    {item}
+                  </li>
                 ))}
               </ul>
+              
+              {selectedJob.required_education && (
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold mb-4">Required Education</h2>
+                  <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    {selectedJob.required_education.toUpperCase()}
+                    {selectedJob.preferred_education && ` (Preferred: ${selectedJob.preferred_education.toUpperCase()})`}
+                  </p>
+                </div>
+              )}
               
               <button
                 onClick={handleApplyClick}
@@ -282,13 +297,14 @@ const JobDetailsPage = ({ currentPage, selectedJob, handleBackClick, handleApply
           <div className={`rounded-xl p-6 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow-md`}>
             <h2 className="text-xl font-bold mb-4">About the Company</h2>
             <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-4`}>
-              {selectedJob.company} is a leading tech company specializing in innovative solutions for enterprise clients.
-              With a global presence and a strong team of talented professionals, we're changing the way businesses operate
-              through cutting-edge technology.
+              {selectedJob.company} is a leading company specializing in innovative solutions.
+              {selectedJob.remote === 'True' || selectedJob.remote === true ? 
+                ' This is a remote position allowing you to work from anywhere.' : 
+                ` This position is based in ${selectedJob.location}.`}
             </p>
             <div className="flex items-center">
               <Clock size={16} className={`mr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
-              <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm`}>Posted 2 weeks ago</span>
+              <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm`}>Posted recently</span>
             </div>
           </div>
         </div>

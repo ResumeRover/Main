@@ -72,65 +72,10 @@ const JOBS = [
       "Assist in data cleaning and preparation"
     ]
   },
-  {
-    id: 5,
-    title: "Project Manager",
-    company: "Global Solutions",
-    type: "Full-time",
-    location: "Austin, TX",
-    salary: "$90,000 - $120,000",
-    description: "We are seeking a project manager to oversee and coordinate projects from inception to completion.",
-    responsibilities: [
-      "Define project scope and objectives",
-      "Develop detailed project plans and timelines",
-      "Coordinate cross-functional teams to ensure project success",
-      "Monitor project progress and make adjustments as needed"
-    ]
-  },
-  {
-    id: 6,
-    title: "Marketing Specialist",
-    company: "Brand Builders",
-    type: "Part-time",
-    location: "Boston, MA",
-    salary: "$50,000 - $70,000",
-    description: "Join our marketing team as a specialist and help us create effective marketing campaigns.",
-    responsibilities: [
-      "Develop and implement marketing strategies",
-      "Conduct market research and analyze trends",
-      "Create content for various marketing channels",
-      "Collaborate with sales teams to drive leads"
-    ]
-  },
-  {
-    id: 7,
-    title: "DevOps Engineer",
-    company: "Cloud Innovations",
-    type: "Contract",
-    location: "Seattle, WA",
-    salary: "$80,000 - $110,000",
-    description: "We are looking for a DevOps engineer to help us automate and streamline our operations.",
-    responsibilities: [
-      "Implement CI/CD pipelines",
-      "Monitor system performance and troubleshoot issues",
-      "Collaborate with development teams to improve deployment processes",
-      "Maintain cloud infrastructure"
-    ]
-  },
-  {
-    id: 8,
-    title: "Content Writer",
-    company: "Creative Content Co.",
-    type: "Internship",
-    location: "Remote",
-    salary: "$30,000 - $50,000",
-    description: "As a content writer intern, you will assist in creating engaging content for our website and social media.",
-    responsibilities: [
-      "Write blog posts, articles, and social media content",
-      "Conduct research on various topics",
-      "Collaborate with the marketing team to develop content strategies"
-    ]
-  }
+
+
+
+
 ];
 
 function App() {
