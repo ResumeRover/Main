@@ -8,7 +8,7 @@ import { LogIn } from 'react-feather';
 import JobSearchAndFilter from './JobSearchAndFilter';
 import { X } from 'react-feather';
 import axios from 'axios';
-import img from "../public/assests/logox.png"
+import img from "/logox.png"
 
 const Jobs = ({ currentPage, JOBS, handleJobClick, handleBackClick, setCurrentPage }) => {
   const { isDarkMode } = useContext(ThemeContext);

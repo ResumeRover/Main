@@ -18,6 +18,7 @@ const emailApi = axios.create({
   }
 });
 
+
 const CandidateRanking = () => {
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);

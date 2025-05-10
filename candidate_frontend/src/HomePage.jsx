@@ -16,7 +16,7 @@ import { ThemeContext } from "./ThemeContext";
 import ThemeToggle from "./ThemeToggle";
 import { LogIn, Menu } from "react-feather";
 import { Info, Home } from "react-feather";
-import img from "../public/assests/logox.png"
+import img from "/logox.png"
 
 // Animation for skills
 const skills = [

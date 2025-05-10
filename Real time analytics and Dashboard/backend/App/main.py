@@ -17,7 +17,7 @@ app = FastAPI()
 
 
 # CORS setup
-origins = ["http://localhost:5173"]  # Update with your frontend URL in production
+origins = ["*"]  # Update with your frontend URL in production
 
 app.add_middleware(
     CORSMiddleware,
@@ -267,15 +267,14 @@ async def job_specific_websocket(websocket: WebSocket, job_role: str):
         print(f"Client for job {job_role} disconnected")
 
 @app.get("/candidates/{job_role}")
-def get_candidates_by_job_role(job_role: str = Path(..., description="Job role name")):
-    job_id = get_job_id_by_role(job_role)
+async def get_candidates_by_job_role(job_role: str = Path(..., description="Job role name")):
+    job_id = await get_job_id_by_role(job_role)
     if not job_id:
         return {"error": f"Job role '{job_role}' not found"}
 
-    candidates = collection.find({"job_id": job_id})
     result = []
 
-    for c in candidates:
+    async for c in collection.find({"job_id": job_id}):
         result.append({
             "name": c.get("name"),
             "email": c.get("email"),
