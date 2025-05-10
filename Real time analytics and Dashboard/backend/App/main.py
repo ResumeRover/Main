@@ -299,23 +299,40 @@ async def get_cv_summary(job_role: str = Path(..., description="Job role name"))
     query = {"job_id": job_id}
 
     total_submitted = await collection.count_documents(query)
-    total_processed = await collection.count_documents({**query, "status": "passed" }})
-    total_rejected = await collection.count_documents({**query, "status": "rejected"})
+    total_processed = await collection.count_documents({
+    **query,
+    "status": {"$in": ["passed", "rejected", "completed"]},
+    "is_verified": True
+    })
+    total_rejected = await collection.count_documents({
+    "$or": [
+        {**query, "status": "rejected"},
+        {**query, "is_verified": False}
+    ]
+    })
+    total_passed = await collection.count_documents({
+    "$and": [
+        {**query, "status": "passed"},
+        {**query, "is_verified": True}
+    ]
+    })
+
 
 
     pipeline = [
         {"$match": query},
         {"$group": {"_id": None, "average_score": {"$avg": "$ranking_score"}}}
     ]
-    result = await list(collection.aggregate(pipeline))
+    cursor = collection.aggregate(pipeline)
+    result = [doc async for doc in cursor]
     average_score = result[0]["average_score"] if result else 0
-
     return {
         "job_role": job_role,
         "submitted": total_submitted,
         "processed": total_processed,
         "avg_score": average_score,
-        "rejected": total_rejected
+        "rejected": total_rejected,
+        "passed": total_passed
     }
 
 
@@ -327,7 +344,8 @@ async def get_score_distribution(job_role: str = Path(..., description="Job role
 
     bins = {"0-20": 0, "21-40": 0, "41-60": 0, "61-80": 0, "81-100": 0}
 
-    async for doc in collection.find({"job_id": job_id}, {"ranking_score": 1}):
+    query = {"job_id": job_id, "status": "passed", "is_verified": True}
+    async for doc in collection.find(query, {"ranking_score": 1}):
         score = doc.get("ranking_score")
         if score is None:
             score = 0
@@ -348,6 +366,7 @@ async def get_score_distribution(job_role: str = Path(..., description="Job role
     return bins
 
 
+
 @app.get("/stats/experience-distribution/{job_role}")
 async def get_experience_distribution(job_role: str = Path(..., description="Job role name")):
     job_id = await get_job_id_by_role(job_role)
@@ -356,11 +375,10 @@ async def get_experience_distribution(job_role: str = Path(..., description="Job
 
     buckets = {"0-1": 0, "2-4": 0, "5-8": 0, "9+": 0}
 
-    # Use async for with AsyncIOMotorCursor
-    async for doc in collection.find({"job_id": job_id}, {"work_experience": 1}):
+    query = {"job_id": job_id, "status": "passed", "is_verified": True}
+    async for doc in collection.find(query, {"work_experience": 1}):
         total_months = calculate_total_experience_months(doc.get("work_experience", []))
 
-        # Place into bucket
         if total_months < 12:
             buckets["0-1"] += 1
         elif total_months <= 48:
@@ -417,8 +435,9 @@ async def get_degree_distribution(job_role: str = Path(..., description="Job rol
         return {"error": f"Job role '{job_role}' not found"}
 
     counters = Counter()
-    # Use async for with AsyncIOMotorCursor
-    async for doc in collection.find({"job_id": job_id}, {"education": 1}):
+    query = {"job_id": job_id, "status": "passed", "is_verified": True}
+
+    async for doc in collection.find(query, {"education": 1}):
         for edu in doc.get("education", []):
             deg = edu.get("degree", "").lower()
             if "bachelor" in deg or "bsc" in deg:
@@ -431,7 +450,9 @@ async def get_degree_distribution(job_role: str = Path(..., description="Job rol
                 counters["PhD"] += 1
             else:
                 counters["Other"] += 1
+
     return counters
+
 
 
 @app.get("/jobs/titles")
@@ -448,13 +469,15 @@ async def get_skill_distribution(job_role: str = Path(..., description="Job role
         return {"error": f"Job role '{job_role}' not found"}
 
     skill_counts = Counter()
-    # Use async for with AsyncIOMotorCursor
-    async for doc in collection.find({"job_id": job_id}, {"skills": 1}):
+    query = {"job_id": job_id, "status": "passed", "is_verified": True}
+
+    async for doc in collection.find(query, {"skills": 1}):
         for skill in doc.get("skills", []):
             skill_normalized = skill.strip().lower().capitalize()
             skill_counts[skill_normalized] += 1
 
     return dict(skill_counts.most_common())
+
  
 
 @app.get("/candidates/by-job/{job_role}")
@@ -462,8 +485,9 @@ async def get_candidates_by_job(job_role: str = Path(..., description="Job role 
     job_id = await get_job_id_by_role(job_role)
     result = []
 
-    # Use async for with AsyncIOMotorCursor
-    async for c in collection.find({"job_id": job_id}):
+    query = {"job_id": job_id, "status": "passed", "is_verified": True}
+
+    async for c in collection.find(query):
         result.append({
             "id": str(c["_id"]),
             "name": c.get("name"),
@@ -497,8 +521,13 @@ async def get_candidates_by_score_buckets(job_role: str = Path(..., description=
     
     grouped_candidates: Dict[str, List[dict]] = {key: [] for key in score_ranges}
 
-    query = {"job_id": job_id, "ranking_score": {"$gte": 0}}
-    # Use async for with AsyncIOMotorCursor
+    query = {
+        "job_id": job_id,
+        "status": "passed",
+        "is_verified": True,
+        "ranking_score": {"$gte": 0}
+    }
+
     async for doc in collection.find(query):
         score = doc.get("ranking_score", 0)
         name = doc.get("name", "Unknown")
@@ -531,11 +560,12 @@ async def get_candidates_by_score_buckets(job_role: str = Path(..., description=
             if low <= score <= high:
                 grouped_candidates[label].append(candidate)
                 break
-        for label in grouped_candidates:
-            grouped_candidates[label].sort(key=lambda x: x["score"], reverse=True)
 
+    for label in grouped_candidates:
+        grouped_candidates[label].sort(key=lambda x: x["score"], reverse=True)
 
     return grouped_candidates
+
 
 
     
