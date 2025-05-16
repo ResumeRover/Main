@@ -47,7 +47,7 @@ const AnalyticsDashboard = () => {
   // Initialize WebSocket connection
   useEffect(() => {
     // Create WebSocket connection
-    const ws = new WebSocket("ws://localhost:8000/ws");
+    const ws = new WebSocket("https://main-production-7511.up.railway.app/ws");
 
     ws.onopen = () => {
       console.log("WebSocket Connected");
@@ -171,7 +171,7 @@ const AnalyticsDashboard = () => {
       const transformedData = {
         title: role,
         stats: {
-          avgScore: Math.round(summaryRes.data.avg_score),
+          avgScore: Math.round((summaryRes.data.avg_score ?? 0) * 100) / 100,
           cvsSubmitted: Math.round(summaryRes.data.submitted),
           cvsProcessed: Math.round(summaryRes.data.processed),
           cvsRejected: Math.round(summaryRes.data.rejected),

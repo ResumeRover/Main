@@ -319,9 +319,21 @@ async def get_cv_summary(job_role: str = Path(..., description="Job role name"))
 
 
     pipeline = [
-        {"$match": query},
-        {"$group": {"_id": None, "average_score": {"$avg": "$ranking_score"}}}
+    {
+        "$match": {
+            **query,
+            "status": "passed",
+            "is_verified": True
+        }
+    },
+    {
+        "$group": {
+            "_id": None,
+            "average_score": {"$avg": "$ranking_score"}
+        }
+    }
     ]
+
     cursor = collection.aggregate(pipeline)
     result = [doc async for doc in cursor]
     average_score = result[0]["average_score"] if result else 0
@@ -329,7 +341,7 @@ async def get_cv_summary(job_role: str = Path(..., description="Job role name"))
         "job_role": job_role,
         "submitted": total_submitted,
         "processed": total_processed,
-        "avg_score": average_score,
+        "avg_score": average_score*100,
         "rejected": total_rejected,
         "passed": total_passed
     }
@@ -350,12 +362,12 @@ async def get_score_distribution(job_role: str = Path(..., description="Job role
             score = 0
         elif isinstance(score, Decimal128):
             score = float(score.to_decimal())
-
-        if score <= 20:
+        
+        if score <= 0.20:
             bins["0-20"] += 1
-        elif score <= 40:
+        elif score <= 0.40:
             bins["21-40"] += 1
-        elif score <= 60:
+        elif score <= 0.60:
             bins["41-60"] += 1
         elif score <= 80:
             bins["61-80"] += 1
@@ -528,7 +540,7 @@ async def get_candidates_by_score_buckets(job_role: str = Path(..., description=
     }
 
     async for doc in collection.find(query):
-        score = doc.get("ranking_score", 0)
+        score = doc.get("ranking_score", 0)*100
         name = doc.get("name", "Unknown")
         email = doc.get("email", "N/A")
         phone = doc.get("phone", "N/A")
