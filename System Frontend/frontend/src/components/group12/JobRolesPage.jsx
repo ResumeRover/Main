@@ -117,7 +117,7 @@ const JobRolesPage = () => {
                 font: { color: "#ffffff" },
                 margin: { t: 0, b: 0 },
               }}
-              style={{ width: "100%", height: "300px" }}
+              style={{ width: "100%", height: "400px" }}
               onClick={(event) => {
                 const clickedLabel = event.points[0].label;
                 navigate(`/analytics-dashboard/${encodeURIComponent(clickedLabel)}`);

@@ -37,6 +37,10 @@ const AnalyticsDashboard = () => {
   const searchTermRef = useRef("");
 
   useEffect(() => {
+    localStorage.setItem("jobRole", searchTerm);
+  }, [searchTerm]);
+
+  useEffect(() => {
     searchTermRef.current = searchTerm;
   }, [searchTerm]);
 
