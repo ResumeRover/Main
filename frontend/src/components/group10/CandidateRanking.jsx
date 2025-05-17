@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL, 
+  baseURL: "https://main-production-7511.up.railway.app/", 
 });
 
 
