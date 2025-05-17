@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import autoprefixer from 'autoprefixer';
 export default defineConfig({
   plugins: [react(), tailwindcss(), autoprefixer()],
+  base: process.env.VITE_BASE_PATH || "Resume_Rover_Main"
   css: {
     postcss: {
       plugins: [autoprefixer()],
