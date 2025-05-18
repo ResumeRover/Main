@@ -17,7 +17,7 @@ import axios from "axios";
 // import html2canvas from "html2canvas";
 
 const api = axios.create({
-  baseURL: "https://main-production-7511.up.railway.app/"
+  baseURL: "https://resumerovermain-production.up.railway.app/"
 });
 
 
@@ -47,7 +47,7 @@ const AnalyticsDashboard = () => {
   // Initialize WebSocket connection
   useEffect(() => {
     // Create WebSocket connection
-    const ws = new WebSocket("https://main-production-7511.up.railway.app/ws");
+    const ws = new WebSocket("https://resumerovermain-production.up.railway.app/ws");
 
     ws.onopen = () => {
       console.log("WebSocket Connected");
