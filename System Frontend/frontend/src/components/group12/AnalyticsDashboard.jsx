@@ -13,8 +13,8 @@ import {
 } from "@mui/material";
 import Plot from "react-plotly.js";
 import axios from "axios";
-// import { jsPDF } from "jspdf";
-// import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 
 const api = axios.create({
   baseURL: "https://resumerovermain-production.up.railway.app/"
@@ -804,21 +804,7 @@ const AnalyticsDashboard = () => {
                 <Typography variant="body2">
                   <strong>Score:</strong> {candidate.score}
                 </Typography>
-                <Button
-                  href={candidate.cvLink}
-                  target="_blank"
-                  sx={{
-                    mt: 2,
-                    backgroundColor: "#42a5f5",
-                    color: "#fff",
-                    fontWeight: "bold",
-                    "&:hover": {
-                      backgroundColor: "#1e88e5",
-                    },
-                  }}
-                >
-                  View CV
-                </Button>
+                
               </Box>
             ))
           ) : (
