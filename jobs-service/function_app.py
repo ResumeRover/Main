@@ -92,31 +92,31 @@ async def get_job(req: func.HttpRequest) -> func.HttpResponse:
             status_code=500
         )
 
-# @app.function_name(name="ApplyForJob")
-# @app.route(route="jobs/{job_id}/apply", methods=["POST"], auth_level=func.AuthLevel.FUNCTION)
-# async def apply_for_job(req: func.HttpRequest) -> func.HttpResponse:
-#     """
-#     Endpoint: https://resumeparserjobscs3023.azurewebsites.net/api/jobs/{job_id}/apply?code=yfdJdeNoFZzkQynk6p56ZETolRh1NqSpOaBYcTebXJO3AzFuWbJDmQ==
-#     """
-#     try:
-#         job_id = req.route_params.get("job_id")
-#         if not job_id:
-#             return func.HttpResponse(
-#                 json.dumps({"error": "Job ID is required"}),
-#                 mimetype="application/json",
-#                 status_code=400
-#             )
+@app.function_name(name="ApplyForJob")
+@app.route(route="jobs/{job_id}/apply", methods=["POST"], auth_level=func.AuthLevel.FUNCTION)
+async def apply_for_job(req: func.HttpRequest) -> func.HttpResponse:
+    """
+    Endpoint: https://resumeparserjobscs3023.azurewebsites.net/api/jobs/{job_id}/apply?code=yfdJdeNoFZzkQynk6p56ZETolRh1NqSpOaBYcTebXJO3AzFuWbJDmQ==
+    """
+    try:
+        job_id = req.route_params.get("job_id")
+        if not job_id:
+            return func.HttpResponse(
+                json.dumps({"error": "Job ID is required"}),
+                mimetype="application/json",
+                status_code=400
+            )
         
-#         # Call the implementation function with the request and job_id
-#         return await apply_for_job_impl(req, job_id)
+        # Call the implementation function with the request and job_id
+        return await apply_for_job_impl(req, job_id)
         
-#     except Exception as e:
-#         logging.error(f"Error applying for job: {str(e)}")
-#         return func.HttpResponse(
-#             json.dumps({"error": str(e)}),
-#             mimetype="application/json",
-#             status_code=500
-#         )
+    except Exception as e:
+        logging.error(f"Error applying for job: {str(e)}")
+        return func.HttpResponse(
+            json.dumps({"error": str(e)}),
+            mimetype="application/json",
+            status_code=500
+        )
     
 @app.function_name(name="HealthCheck")
 @app.route(route="health", methods=["GET"], auth_level=func.AuthLevel.FUNCTION)
