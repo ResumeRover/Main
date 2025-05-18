@@ -25,7 +25,7 @@ const CandidateRanking = () => {
   const [displayedCandidates, setDisplayedCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [jobList, setJobList] = useState([]);
-  const [jobPosition, setJobPosition] = useState("");
+  const [jobPosition, setJobPosition] = useState("Senior Software Engineer"); // Set default position
   const [error, setError] = useState(null);
   const [emailSending, setEmailSending] = useState(false);
 
@@ -74,113 +74,128 @@ const CandidateRanking = () => {
     fetchJobRoles();
   }, []);
 
-  // Fetch candidates from backend
+  // Fetch candidates whenever job position changes
   useEffect(() => {
-    const fetchCandidates = async () => {
-      setLoading(true);
-      try {
-        // Try to fetch data from API using correct endpoint
-        // Note: The parsed_resumes endpoint might need to be updated to the correct path
-        const response = await axios.get(
-          "https://resumerovermain-production.up.railway.app/candidates/Senior Software Engineer"
-        );
-        
-        if (response.data && Array.isArray(response.data)) {
-          console.log("Fetched candidates from API:", response.data);
-          // Format the data for the UI
-          const formattedCandidates = response.data.map((candidate, index) => ({
-            id: candidate.id || candidate._id || `candidate-${index + 1}`,
-            name: candidate.name || candidate.candidate_name || "Unknown Candidate",
-            email: candidate.email || candidate.candidate_email || "no-email@example.com",
-            phone: candidate.phone || candidate.candidate_phone || "Not provided",
-            is_verified: candidate.is_verified || false,
-            ranking_score: candidate.score || candidate.ranking_score || Math.floor(Math.random() * 30 + 65), // If no score, assign random
-            status: candidate.status || "in progress",
-            applied_position: candidate.applied_position || candidate.position || jobPosition || "Unknown Position",
-            parsed_data: candidate.parsed_data || {}
-          }));
-          
-          // Update both candidate states
-          setAllCandidates(formattedCandidates);
-          setDisplayedCandidates(formattedCandidates);
-          console.log("Successfully loaded candidates from API");
-          console.log("Candidates data:", formattedCandidates);
-        } else {
-          console.log("No candidates data found in API response, using mock data");
-        }
-      } catch (err) {
-        console.error("Error fetching candidates:", err);
-        
-        // Set a more user-friendly error message
-        if (err.response && err.response.status === 404) {
-          setError("Candidate data endpoint not found. Using sample data instead.");
-        } else {
-          setError("Failed to load candidates from server. Using sample data instead.");
-        }
-        
-        // Fall back to mock data
-        setMockCandidates();
-      } finally {
-        setLoading(false);
-      }
-    };
+    // Only fetch if a job position is selected
+    if (jobPosition) {
+      fetchCandidates(jobPosition);
+    }
+  }, [jobPosition]);
 
-    fetchCandidates();
-  }, []);
-
-  // Function to filter candidates based on job role
-  const filterCandidatesByRole = (role) => {
+  // Fetch candidates from backend based on job position
+  const fetchCandidates = async (position) => {
     setLoading(true);
+    setError(null); // Clear any previous errors
     
     try {
-      if (!role) {
-        // If no role is selected, show all candidates
-        setDisplayedCandidates(allCandidates);
-        setLoading(false);
-        return;
-      }
-      
-      // Filter candidates based on selected role - from the complete list
-      const filtered = allCandidates.filter(c => 
-        c.applied_position?.toLowerCase() === role.toLowerCase()
+      // Use the position parameter to fetch candidates for that specific role
+      const response = await axios.get(
+        `https://resumerovermain-production.up.railway.app/candidates/${encodeURIComponent(position)}`
       );
       
-      if (filtered.length > 0) {
+      if (response.data && Array.isArray(response.data)) {
+        console.log(`Fetched candidates for ${position}:`, response.data);
+        // Format the data for the UI
+        const formattedCandidates = response.data.map((candidate, index) => ({
+          id: candidate.id || candidate._id || `candidate-${index + 1}`,
+          name: candidate.name || candidate.candidate_name || "Unknown Candidate",
+          email: candidate.email || candidate.candidate_email || "no-email@example.com",
+          phone: candidate.phone || candidate.candidate_phone || "Not provided",
+          is_verified: candidate.is_verified || false,
+          ranking_score: candidate.score || candidate.ranking_score || Math.floor(Math.random() * 30 + 65), // If no score, assign random
+          status: candidate.status || "in progress",
+          applied_position: candidate.applied_position || candidate.position || position,
+          parsed_data: candidate.parsed_data || {}
+        }));
+        
         // Sort candidates by ranking score
-        const sortedCandidates = [...filtered].sort(
+        const sortedCandidates = [...formattedCandidates].sort(
           (a, b) => b.ranking_score - a.ranking_score
         );
-        setDisplayedCandidates(sortedCandidates);
-      } else {
-        // If no candidates found for this role, show all candidates
-        setDisplayedCandidates(allCandidates);
-        // Set a message
-        setError(`No candidates found for ${role} position. Showing all candidates.`);
         
-        // After 3 seconds, clear the error
-        setTimeout(() => {
-          setError(null);
-        }, 3000);
+        // Update both candidate states
+        setAllCandidates(sortedCandidates);
+        setDisplayedCandidates(sortedCandidates);
+        console.log(`Successfully loaded candidates for ${position}`);
+      } else {
+        console.log(`No candidates data found for ${position}`);
+        setError(`No candidates found for ${position} position.`);
+        setAllCandidates([]);
+        setDisplayedCandidates([]);
       }
-    } catch (error) {
-      console.error("Error filtering candidates by role:", error);
-      setError("Failed to filter candidates for this position");
-      // Revert to showing all candidates on error
-      setDisplayedCandidates(allCandidates);
+    } catch (err) {
+      console.error(`Error fetching candidates for ${position}:`, err);
+      
+      // Set a more user-friendly error message
+      if (err.response && err.response.status === 404) {
+        setError(`No candidates found for ${position} position.`);
+      } else {
+        setError(`Failed to load candidates for ${position}. ${err.message}`);
+      }
+      
+      // Clear the candidates when there's an error
+      setAllCandidates([]);
+      setDisplayedCandidates([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Filter candidates when job position changes
-  useEffect(() => {
-    if (jobPosition) {
-      filterCandidatesByRole(jobPosition);
-    } else {
-      // If job position is cleared, show all candidates
-      setDisplayedCandidates(allCandidates);
+  // Function to handle job position change
+  const handleJobPositionChange = (e) => {
+    const newPosition = e.target.value;
+    setJobPosition(newPosition);
+    
+    // If "All Positions" is selected, try to fetch all candidates
+    if (!newPosition) {
+      fetchAllCandidates();
     }
-  }, [jobPosition, allCandidates]);
+  };
+  
+  // Fetch all candidates regardless of position
+  const fetchAllCandidates = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Try to fetch all candidates - this endpoint might need to be adjusted based on your API
+      const response = await axios.get(
+        "https://resumerovermain-production.up.railway.app/candidates/all"
+      );
+      
+      if (response.data && Array.isArray(response.data)) {
+        const formattedCandidates = response.data.map((candidate, index) => ({
+          id: candidate.id || candidate._id || `candidate-${index + 1}`,
+          name: candidate.name || candidate.candidate_name || "Unknown Candidate",
+          email: candidate.email || candidate.candidate_email || "no-email@example.com",
+          phone: candidate.phone || candidate.candidate_phone || "Not provided",
+          is_verified: candidate.is_verified || false,
+          ranking_score: candidate.score || candidate.ranking_score || Math.floor(Math.random() * 30 + 65),
+          status: candidate.status || "in progress",
+          applied_position: candidate.applied_position || candidate.position || "Unknown Position",
+          parsed_data: candidate.parsed_data || {}
+        }));
+        
+        const sortedCandidates = [...formattedCandidates].sort(
+          (a, b) => b.ranking_score - a.ranking_score
+        );
+        
+        setAllCandidates(sortedCandidates);
+        setDisplayedCandidates(sortedCandidates);
+      } else {
+        setError("No candidates found.");
+        setAllCandidates([]);
+        setDisplayedCandidates([]);
+      }
+    } catch (err) {
+      console.error("Error fetching all candidates:", err);
+      setError("Failed to load candidates. Please try again later.");
+      setAllCandidates([]);
+      setDisplayedCandidates([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getScoreColor = (score) => {
     if (score >= 85) return "text-green-500";
@@ -346,7 +361,7 @@ const CandidateRanking = () => {
             <select
               id="job-position"
               value={jobPosition}
-              onChange={(e) => setJobPosition(e.target.value)}
+              onChange={handleJobPositionChange}
               className="bg-gray-800 border border-gray-700 text-white py-1 px-3 rounded focus:outline-none focus:border-blue-500 text-sm"
             >
               <option value="">All Positions</option>
