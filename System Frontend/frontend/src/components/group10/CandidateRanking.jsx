@@ -12,7 +12,7 @@ const jobsApi = axios.create({
 
 // Email client API
 const emailApi = axios.create({
-  baseURL: "https://main-production-0f03.up.railway.app",
+  baseURL: "https://email-client-resume-143155629435.asia-southeast1.run.app",
   headers: {
     'Content-Type': 'application/json'
   }
@@ -239,7 +239,7 @@ const CandidateRanking = () => {
       };
       
       // Send to email service
-      const response = await emailApi.post('/send-email', payload);
+      const response = await emailApi.get('/send-email', payload);
       
       console.log('Email notification sent:', response.data);
       
