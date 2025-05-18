@@ -239,7 +239,7 @@ const CandidateRanking = () => {
       };
       
       // Send to email service
-      const response = await emailApi.get('/send-email', payload);
+      const response = await emailApi.post('/send-email', payload);
       
       console.log('Email notification sent:', response.data);
       
