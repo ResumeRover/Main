@@ -237,9 +237,10 @@ const CandidateRanking = () => {
         name: candidate.name,
         status: status === "accept" ? "accepted" : "rejected"
       };
+      console.log(payload)
       
       // Send to email service
-      const response = await emailApi.post('/send-email', payload);
+      const response = await emailApi.get('/send-email', payload);
       
       console.log('Email notification sent:', response.data);
       
