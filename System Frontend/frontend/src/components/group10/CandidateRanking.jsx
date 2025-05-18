@@ -166,11 +166,11 @@ const CandidateRanking = () => {
       if (response.data && Array.isArray(response.data)) {
         const formattedCandidates = response.data.map((candidate, index) => ({
           id: candidate.id || candidate._id || `candidate-${index + 1}`,
-          name: candidate.name || candidate.candidate_name || "Unknown Candidate",
-          email: candidate.email || candidate.candidate_email || "no-email@example.com",
-          phone: candidate.phone || candidate.candidate_phone || "Not provided",
+          name: candidate.name || candidate.candidate_name ,
+          email: candidate.email || candidate.candidate_email ,
+          phone: candidate.phone || candidate.candidate_phone ,
           is_verified: candidate.is_verified || false,
-          ranking_score: candidate.score || candidate.ranking_score || Math.floor(Math.random() * 30 + 65),
+          ranking_score: candidate.score || candidate.ranking_score ,
           status: candidate.status || "in progress",
           applied_position: candidate.applied_position || candidate.position || "Unknown Position",
           parsed_data: candidate.parsed_data || {}
