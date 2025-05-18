@@ -171,7 +171,6 @@ async def parse_resume_endpoint(
                 status_code=500
             )
 
-        
         return {
             "success": True,
             "message": "Resume processed successfully",

@@ -5,7 +5,8 @@ from app import (
     create_job_impl,
     list_jobs_impl,
     get_job_impl,
-    health_check_impl
+    health_check_impl,
+    apply_for_job_impl 
 )
 
 # Define the function app
@@ -91,64 +92,31 @@ async def get_job(req: func.HttpRequest) -> func.HttpResponse:
             status_code=500
         )
 
-@app.function_name(name="ApplyForJob")
-@app.route(route="jobs/{job_id}/apply", methods=["POST"], auth_level=func.AuthLevel.FUNCTION)
-async def apply_for_job(req: func.HttpRequest) -> func.HttpResponse:
-    """
-    Endpoint: https://resumeparserjobscs3023.azurewebsites.net/api/jobs/{job_id}/apply?code=yfdJdeNoFZzkQynk6p56ZETolRh1NqSpOaBYcTebXJO3AzFuWbJDmQ==
-    """
-    try:
-        import requests
+# @app.function_name(name="ApplyForJob")
+# @app.route(route="jobs/{job_id}/apply", methods=["POST"], auth_level=func.AuthLevel.FUNCTION)
+# async def apply_for_job(req: func.HttpRequest) -> func.HttpResponse:
+#     """
+#     Endpoint: https://resumeparserjobscs3023.azurewebsites.net/api/jobs/{job_id}/apply?code=yfdJdeNoFZzkQynk6p56ZETolRh1NqSpOaBYcTebXJO3AzFuWbJDmQ==
+#     """
+#     try:
+#         job_id = req.route_params.get("job_id")
+#         if not job_id:
+#             return func.HttpResponse(
+#                 json.dumps({"error": "Job ID is required"}),
+#                 mimetype="application/json",
+#                 status_code=400
+#             )
         
-        job_id = req.route_params.get("job_id")
-        if not job_id:
-            return func.HttpResponse(
-                json.dumps({"error": "Job ID is required"}),
-                mimetype="application/json",
-                status_code=400
-            )
+#         # Call the implementation function with the request and job_id
+#         return await apply_for_job_impl(req, job_id)
         
-        # Get the file content directly from the request
-        file_content = req.get_body()
-        
-        # Send the resume to the parser endpoint
-        parser_url = "https://resume-parser-143155629435.asia-southeast1.run.app/"
-        
-        # Prepare the files and data for the request
-        files = {
-            'file': ('resume.pdf', file_content, 'application/pdf')
-        }
-        
-        data = {
-            'job_id': job_id
-        }
-
-        try :
-        # Send request to the parser
-            response = requests.post(parser_url, files=files, data=data)
-        
-        except requests.exceptions.RequestException as e:
-            logging.error(f"Request to parser failed: {str(e)}")
-            return func.HttpResponse(
-                json.dumps({"error": "Failed to connect to the parser service"}),
-                mimetype="application/json",
-                status_code=500
-            )            
-        
-        # Return the response from the parser directly
-        return func.HttpResponse(
-            response.text,
-            mimetype="application/json",
-            status_code=response.status_code
-        )
-        
-    except Exception as e:
-        logging.error(f"Error applying for job: {str(e)}")
-        return func.HttpResponse(
-            json.dumps({"error": str(e)}),
-            mimetype="application/json",
-            status_code=500
-        )
+#     except Exception as e:
+#         logging.error(f"Error applying for job: {str(e)}")
+#         return func.HttpResponse(
+#             json.dumps({"error": str(e)}),
+#             mimetype="application/json",
+#             status_code=500
+#         )
     
 @app.function_name(name="HealthCheck")
 @app.route(route="health", methods=["GET"], auth_level=func.AuthLevel.FUNCTION)
