@@ -327,6 +327,11 @@ const AnalyticsDashboard = () => {
           alignItems="center"
           height="70vh"
         >
+          {/* Instructional text above search bar - now in white */}
+          <Typography variant="h5" color="#ffffff" mb={3}>
+            Search for a job role to view analytics
+          </Typography>
+          
           <Box
             display="flex"
             alignItems="center"
@@ -383,9 +388,6 @@ const AnalyticsDashboard = () => {
               Search
             </Button>
           </Box>
-          <Typography variant="h5" color="textSecondary">
-            Search for a job role to view analytics
-          </Typography>
         </Box>
       )}
 
