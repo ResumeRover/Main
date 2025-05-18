@@ -213,8 +213,8 @@ const CandidateRanking = () => {
       );
     }
     return (
-      <span className="px-2 py-1 text-xs rounded-full bg-gray-700 text-gray-300">
-        Pending
+      <span className="px-2 py-1 text-xs rounded-full bg-green-900 text-green-400">
+        valid
       </span>
     );
   };
@@ -455,7 +455,7 @@ const CandidateRanking = () => {
                         candidate.ranking_score
                       )}`}
                     >
-                      {candidate.ranking_score}%
+                      {candidate.ranking_score*100}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm">
