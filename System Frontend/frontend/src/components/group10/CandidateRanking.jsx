@@ -82,7 +82,7 @@ const CandidateRanking = () => {
         // Try to fetch data from API using correct endpoint
         // Note: The parsed_resumes endpoint might need to be updated to the correct path
         const response = await axios.get(
-          "https://main-production-7511.up.railway.app/candidates/Senior Software Engineer"
+          "https://resumerovermain-production.up.railway.app/candidates/Senior Software Engineer"
         );
         
         if (response.data && Array.isArray(response.data)) {
