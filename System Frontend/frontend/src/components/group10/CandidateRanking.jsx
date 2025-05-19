@@ -102,7 +102,7 @@ const CandidateRanking = () => {
           email: candidate.email || candidate.candidate_email || "no-email@example.com",
           phone: candidate.phone || candidate.candidate_phone || "Not provided",
           is_verified: candidate.is_verified || false,
-          ranking_score: candidate.score || candidate.ranking_score || Math.floor(Math.random() * 30 + 65), // If no score, assign random
+          ranking_score: candidate.score || candidate.ranking_score || 0.635234678, // If no score, assign random
           status: candidate.status || "in progress",
           applied_position: candidate.applied_position || candidate.position || position,
           parsed_data: candidate.parsed_data || {}
