@@ -354,7 +354,7 @@ const HomePage = () => {
         {/* /* CTA Button */}
         <button
           onClick={() => navigate("/jobs")}
-          className="group px-8 py-4 bg-primary-600 dark:bg-primary-500 text-white rounded-xl font-bold text-lg shadow-lg hover:bg-primary-700 dark:hover:bg-primary-600 transition-all flex items-center mx-auto inline-flex"
+          className="group px-8 py-4 bg-primary-600 dark:bg-primary-500 text-white rounded-xl font-bold text-lg shadow-lg hover:bg-primary-700 dark:hover:bg-primary-600 transition-all flex items-center mx-auto"
         >
           Browse All Jobs
           <ArrowRight
