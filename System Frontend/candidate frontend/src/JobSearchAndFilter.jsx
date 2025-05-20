@@ -330,14 +330,13 @@ const JOBS = [
                 {/* Salary Range filter */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium mb-2">
-                    Salary Range: ${filters.salary[0].toLocaleString()} - $
-                    {filters.salary[1].toLocaleString()}
+                    Salary Range: LKR {filters.salary[0].toLocaleString()} - LKR {filters.salary[1].toLocaleString()}
                   </label>
                   <div className="px-2">
                     <input
                       type="range"
                       min="0"
-                      max="200000"
+                      max="400000"
                       step="10000"
                       value={filters.salary[0]}
                       onChange={(e) =>
@@ -351,7 +350,7 @@ const JOBS = [
                     <input
                       type="range"
                       min="0"
-                      max="200000"
+                      max="400000"
                       step="10000"
                       value={filters.salary[1]}
                       onChange={(e) =>
