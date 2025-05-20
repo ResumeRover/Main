@@ -276,7 +276,7 @@ const AdminPanel = () => {
         </div>
         
         <div className="p-4 text-xs text-center border-t border-gray-800/40 text-gray-500">
-          © 2025, Made with ❤️ by Resume Rover
+          © 2025, Made with ❤️ by CSE
         </div>
       </div>
 
