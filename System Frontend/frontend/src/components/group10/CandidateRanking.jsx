@@ -197,12 +197,16 @@ const CandidateRanking = () => {
     }
   };
 
-  const getScoreColor = (score) => {
-    if (score >= 85) return "text-green-500";
-    if (score >= 75) return "text-blue-500";
-    if (score >= 65) return "text-yellow-500";
-    return "text-red-500";
-  };
+const getScoreColor = (score) => {
+  // Convert decimal score to percentage (0-100 scale)
+  const scorePercentage = score * 100;
+  
+  if (scorePercentage >= 85) return "text-green-500";  // Excellent match (85-100%)
+  if (scorePercentage >= 70) return "text-blue-500";   // Good match (70-84%)
+  if (scorePercentage >= 50) return "text-yellow-500"; // Average match (50-69%)
+  if (scorePercentage >= 30) return "text-orange-500"; // Below average (30-49%)
+  return "text-red-500";                               // Poor match (0-29%)
+};
 
   const getStatusBadge = (isVerified) => {
     if (isVerified) {
@@ -457,7 +461,7 @@ const CandidateRanking = () => {
                         candidate.ranking_score
                       )}`}
                     >
-                      {candidate.ranking_score*100}
+                      {(candidate.ranking_score * 100).toFixed(2)}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm">
@@ -522,112 +526,115 @@ const CandidateRanking = () => {
         </div>
       )}
 
-      {/* Confirmation Overlay */}
-      {showOverlay && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-          <div 
-            className="relative w-96 p-6 rounded-xl overflow-hidden border border-gray-700/50 shadow-xl"
-            style={{
-              background: "linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(17, 24, 39, 0.9) 100%)",
-              backdropFilter: "blur(10px)",
-              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1) inset"
-            }}
-          >
-            {/* Decorative elements for glass effect */}
-            <div className="absolute -top-24 -right-24 w-40 h-40 bg-green-500/20 rounded-full blur-3xl"></div>
-            <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl"></div>
-            
-            {showConfirmation ? (
-              <div className="flex flex-col items-center relative z-10">
-                <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mb-5 shadow-lg shadow-emerald-500/30">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-10 w-10 text-white animate-[scale_0.5s_ease-in-out]"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={3}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-medium text-white mb-1">Action Confirmed!</h3>
-                <p className="text-gray-300 text-sm mb-2">The candidate has been {actionType === "accept" ? "accepted" : "rejected"}.</p>
-                
-                {emailStatus.message && (
-                  <div className={`mt-3 p-2 rounded text-sm ${
-                    emailStatus.success ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'
-                  }`}>
-                    {emailStatus.message}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <>
-                <div className="relative z-10">
-                  <h3 className="text-xl font-medium mb-4 text-white">
-                    Confirm {actionType === "accept" ? "Acceptance" : "Rejection"}
-                  </h3>
-                  <p className="mb-5 text-gray-300">
-                    Are you sure you want to {actionType}{" "}
-                    <strong className="text-white">{selectedCandidate?.name}</strong>?
-                  </p>
-                  
-                  <div className="flex items-center mb-6 p-3 rounded-lg bg-gray-800/50 border border-gray-700/50">
-                    <input
-                      type="checkbox"
-                      id="send-email"
-                      checked={sendEmail}
-                      onChange={(e) => setSendEmail(e.target.checked)}
-                      className="mr-3 h-4 w-4 rounded border-gray-500 text-primary-500 focus:ring-primary-500/50 focus:ring-offset-0 bg-gray-700"
-                    />
-                    <div>
-                      <label htmlFor="send-email" className="text-sm font-medium text-white">
-                        Send notification email
-                      </label>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        Candidate will be notified about their application status
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-end space-x-4">
-                    <button
-                      onClick={handleCancelAction}
-                      disabled={emailSending}
-                      className="px-4 py-2.5 bg-gray-700/50 hover:bg-gray-600 rounded-lg text-sm border border-gray-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleConfirmAction}
-                      disabled={emailSending}
-                      className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${
-                        actionType === "accept"
-                          ? "bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 shadow-md shadow-emerald-500/20"
-                          : "bg-gradient-to-r from-rose-500 to-red-500 hover:from-rose-600 hover:to-red-600 shadow-md shadow-rose-500/20"
-                      }`}
-                    >
-                      {emailSending ? (
-                        <div className="flex items-center">
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                          Sending...
-                        </div>
-                      ) : (
-                        "Confirm"
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
+{/* Confirmation Overlay */}
+{showOverlay && (
+  <div className="fixed inset-0 overflow-hidden bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999]" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+    {/* Modal content */}
+    <div 
+      className="relative w-96 p-6 rounded-xl overflow-hidden border border-gray-700/50 shadow-xl"
+      style={{
+        background: "linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(17, 24, 39, 0.9) 100%)",
+        backdropFilter: "blur(10px)",
+        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1) inset",
+        zIndex: 10000
+      }}
+      onClick={(e) => e.stopPropagation()} // Prevent clicks from closing when clicking on the modal
+    >
+      {/* Decorative elements for glass effect */}
+      <div className="absolute -top-24 -right-24 w-40 h-40 bg-green-500/20 rounded-full blur-3xl"></div>
+      <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl"></div>
+      
+      {showConfirmation ? (
+        <div className="flex flex-col items-center relative z-10">
+          <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mb-5 shadow-lg shadow-emerald-500/30">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-10 w-10 text-white animate-[scale_0.5s_ease-in-out]"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={3}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
           </div>
+          <h3 className="text-xl font-medium text-white mb-1">Action Confirmed!</h3>
+          <p className="text-gray-300 text-sm mb-2">The candidate has been {actionType === "accept" ? "accepted" : "rejected"}.</p>
+          
+          {emailStatus.message && (
+            <div className={`mt-3 p-2 rounded text-sm ${
+              emailStatus.success ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'
+            }`}>
+              {emailStatus.message}
+            </div>
+          )}
         </div>
+      ) : (
+        <>
+          <div className="relative z-10">
+            <h3 className="text-xl font-medium mb-4 text-white">
+              Confirm {actionType === "accept" ? "Acceptance" : "Rejection"}
+            </h3>
+            <p className="mb-5 text-gray-300">
+              Are you sure you want to {actionType}{" "}
+              <strong className="text-white">{selectedCandidate?.name}</strong>?
+            </p>
+            
+            <div className="flex items-center mb-6 p-3 rounded-lg bg-gray-800/50 border border-gray-700/50">
+              <input
+                type="checkbox"
+                id="send-email"
+                checked={sendEmail}
+                onChange={(e) => setSendEmail(e.target.checked)}
+                className="mr-3 h-4 w-4 rounded border-gray-500 text-primary-500 focus:ring-primary-500/50 focus:ring-offset-0 bg-gray-700"
+              />
+              <div>
+                <label htmlFor="send-email" className="text-sm font-medium text-white">
+                  Send notification email
+                </label>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Candidate will be notified about their application status
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={handleCancelAction}
+                disabled={emailSending}
+                className="px-4 py-2.5 bg-gray-700/50 hover:bg-gray-600 rounded-lg text-sm border border-gray-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmAction}
+                disabled={emailSending}
+                className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${
+                  actionType === "accept"
+                    ? "bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 shadow-md shadow-emerald-500/20"
+                    : "bg-gradient-to-r from-rose-500 to-red-500 hover:from-rose-600 hover:to-red-600 shadow-md shadow-rose-500/20"
+                }`}
+              >
+                {emailSending ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                    Sending...
+                  </div>
+                ) : (
+                  "Confirm"
+                )}
+              </button>
+            </div>
+          </div>
+        </>
       )}
+    </div>
+  </div>
+)}
     </div>
   );
 };

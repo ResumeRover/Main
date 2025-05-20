@@ -357,7 +357,7 @@ function JobRolePanel() {
           <div className="bg-gray-900 bg-opacity-70 rounded-xl backdrop-blur-sm shadow-xl p-6 card-3d mb-6 add-job-role-form">
             <h2 className="text-xl font-semibold text-white mb-6 flex items-center">
               <span className="mr-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-400">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
                   <circle cx="9" cy="7" r="4"></circle>
                   <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
@@ -477,36 +477,238 @@ function JobRolePanel() {
                 </div>
               </div>
               
-              {/* Salary Range */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Salary Range (LKR) <span className="text-red-400">*</span>
-                </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <input
-                      type="number"
-                      id="salaryMin"
-                      name="salaryMin"
-                      value={formData.salaryMin}
-                      onChange={handleChange}
-                      className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Minimum (e.g. 100000)"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="number"
-                      id="salaryMax"
-                      name="salaryMax"
-                      value={formData.salaryMax}
-                      onChange={handleChange}
-                      className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Maximum (e.g. 150000)"
-                    />
+                {/* Salary Range */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Salary Range (LKR) <span className="text-red-400">*</span>
+                  </label>
+                  
+                  <div className="bg-gray-800 bg-opacity-50 rounded-lg p-5 border border-gray-700">
+                    {/* Salary Preset Buttons */}
+                    <div className="mb-4">
+                      <div className="text-xs text-gray-400 mb-2">Quick Select:</div>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          {label: "50-100k", min: 50000, max: 100000},
+                          {label: "100-150k", min: 100000, max: 150000},
+                          {label: "150-200k", min: 150000, max: 200000},
+                          {label: "200-300k", min: 200000, max: 300000},
+                          {label: "300-500k", min: 300000, max: 500000},
+                          {label: "500k+", min: 500000, max: 1000000}
+                        ].map((range) => (
+                          <button
+                            key={range.label}
+                            type="button"
+                            onClick={() => setFormData(prev => ({
+                              ...prev,
+                              salaryMin: range.min,
+                              salaryMax: range.max
+                            }))}
+                            className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                              parseInt(formData.salaryMin) === range.min && parseInt(formData.salaryMax) === range.max
+                                ? 'bg-green-600 text-white'
+                                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                            }`}
+                          >
+                            {range.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Interactive Salary Range Display */}
+                    <div className="bg-gray-900 bg-opacity-60 rounded-lg p-4 mb-4">
+                      <div className="relative h-9 mb-6">
+                        {/* Salary Scale Markers */}
+                        <div className="absolute w-full flex justify-between text-xs text-gray-500 -mt-3">
+                          {[0, 200000, 400000, 600000, 800000, 1000000].map((value) => (
+                            <div key={value} className="flex flex-col items-center">
+                              <div className="h-2 w-px bg-gray-700"></div>
+                              <div className="mt-1">{value === 0 ? '0' : `${value/1000}k`}</div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {/* Range Bar */}
+                        <div 
+                          className="absolute top-5 w-full h-2 bg-gray-700 rounded-full cursor-pointer"
+                          onClick={(e) => {
+                            const container = e.currentTarget;
+                            const rect = container.getBoundingClientRect();
+                            const percent = (e.clientX - rect.left) / rect.width;
+                            const value = Math.round(percent * 1000000);
+                            
+                            // Decide whether to move min or max handle based on which is closer
+                            const minDist = Math.abs(value - (parseInt(formData.salaryMin) || 0));
+                            const maxDist = Math.abs(value - (parseInt(formData.salaryMax) || 1000000));
+                            
+                            if (minDist <= maxDist) {
+                              // Move min handle, but don't exceed max
+                              const newValue = Math.min(value, parseInt(formData.salaryMax) || 1000000);
+                              setFormData(prev => ({...prev, salaryMin: newValue}));
+                            } else {
+                              // Move max handle, but don't go below min
+                              const newValue = Math.max(value, parseInt(formData.salaryMin) || 0);
+                              setFormData(prev => ({...prev, salaryMax: newValue}));
+                            }
+                          }}
+                        ></div>
+                        
+                        {/* Selected Range */}
+                        <div 
+                          className="absolute top-5 h-2 bg-green-600 rounded-full" 
+                          style={{ 
+                            left: `${Math.min((parseInt(formData.salaryMin) || 0) / 10000, 100)}%`, 
+                            width: `${Math.max(((parseInt(formData.salaryMax) || 0) - (parseInt(formData.salaryMin) || 0)) / 10000, 0)}%` 
+                          }}
+                        ></div>
+                        
+                        {/* Min Selector */}
+                        <div 
+                          className="absolute top-[14px] w-6 h-6 flex items-center justify-center bg-gradient-to-r from-green-500 to-green-600 rounded-full shadow-md cursor-grab -ml-3 group"
+                          style={{ left: `${Math.min((parseInt(formData.salaryMin) || 0) / 10000, 100)}%` }}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            
+                            // Calculate drag function for the minimum handle
+                            const handleMouseMove = (moveEvent) => {
+                              const container = e.currentTarget.parentNode;
+                              const rect = container.getBoundingClientRect();
+                              const percent = Math.max(0, Math.min(1, (moveEvent.clientX - rect.left) / rect.width));
+                              const value = Math.round(percent * 1000000);
+                              
+                              // Don't allow min to exceed max
+                              if (value <= (parseInt(formData.salaryMax) || 1000000)) {
+                                setFormData(prev => ({...prev, salaryMin: value}));
+                              }
+                            };
+                            
+                            // Handle mouse up to stop dragging
+                            const handleMouseUp = () => {
+                              document.removeEventListener('mousemove', handleMouseMove);
+                              document.removeEventListener('mouseup', handleMouseUp);
+                            };
+                            
+                            document.addEventListener('mousemove', handleMouseMove);
+                            document.addEventListener('mouseup', handleMouseUp);
+                          }}
+                        >
+                          <div className="absolute -bottom-8 bg-green-900 text-blue-100 px-2 py-1 rounded text-xs whitespace-nowrap">
+                            Min: {(parseInt(formData.salaryMin) || 0).toLocaleString()} LKR
+                          </div>
+                        </div>
+                        
+                        {/* Max Selector */}
+                        <div 
+                          className="absolute top-[14px] w-6 h-6 flex items-center justify-center bg-gradient-to-r from-green-600 to-green-700 rounded-full shadow-md cursor-grab -ml-3 group"
+                          style={{ left: `${Math.min((parseInt(formData.salaryMax) || 0) / 10000, 100)}%` }}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            
+                            // Calculate drag function for the maximum handle
+                            const handleMouseMove = (moveEvent) => {
+                              const container = e.currentTarget.parentNode;
+                              const rect = container.getBoundingClientRect();
+                              const percent = Math.max(0, Math.min(1, (moveEvent.clientX - rect.left) / rect.width));
+                              const value = Math.round(percent * 1000000);
+                              
+                              // Don't allow max to be less than min
+                              if (value >= (parseInt(formData.salaryMin) || 0)) {
+                                setFormData(prev => ({...prev, salaryMax: value}));
+                              }
+                            };
+                            
+                            // Handle mouse up to stop dragging
+                            const handleMouseUp = () => {
+                              document.removeEventListener('mousemove', handleMouseMove);
+                              document.removeEventListener('mouseup', handleMouseUp);
+                            };
+                            
+                            document.addEventListener('mousemove', handleMouseMove);
+                            document.addEventListener('mouseup', handleMouseUp);
+                          }}
+                        >
+                          <div className="absolute -bottom-8 bg-green-900 text-blue-100 px-2 py-1 rounded text-xs whitespace-nowrap">
+                            Max: {(parseInt(formData.salaryMax) || 0).toLocaleString()} LKR
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Manual Input */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                      <div>
+                        <label htmlFor="salaryMin" className="block text-xs font-medium text-gray-400 mb-1">Minimum Salary</label>
+                        <div className="relative rounded-md shadow-sm">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span className="text-gray-500 sm:text-sm">LKR</span>
+                          </div>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            id="salaryMin"
+                            name="salaryMin"
+                            value={formData.salaryMin}
+                            onChange={(e) => {
+                              const rawValue = e.target.value.replace(/[^0-9]/g, '');
+                              const value = rawValue ? parseInt(rawValue) : '';
+                              const maxVal = parseInt(formData.salaryMax) || 1000000;
+                              setFormData(prev => ({
+                                ...prev,
+                                salaryMin: value === '' ? '' : (value > maxVal ? maxVal : value)
+                              }));
+                            }}
+                            className="bg-gray-900 border border-gray-700 text-white pl-12 block w-full py-2 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="0"
+                            style={{appearance: 'textfield'}}
+                          />
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <span className="text-xs text-gray-500">Min</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <label htmlFor="salaryMax" className="block text-xs font-medium text-gray-400 mb-1">Maximum Salary</label>
+                        <div className="relative rounded-md shadow-sm">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span className="text-gray-500 sm:text-sm">LKR</span>
+                          </div>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            id="salaryMax"
+                            name="salaryMax"
+                            value={formData.salaryMax}
+                            onChange={(e) => {
+                              const rawValue = e.target.value.replace(/[^0-9]/g, '');
+                              const value = rawValue ? parseInt(rawValue) : '';
+                              const minVal = parseInt(formData.salaryMin) || 0;
+                              setFormData(prev => ({
+                                ...prev,
+                                salaryMax: value === '' ? '' : (value < minVal ? minVal : value)
+                              }));
+                            }}
+                            className="bg-gray-900 border border-gray-700 text-white pl-12 block w-full py-2 rounded-md focus:ring-green-500 focus:border-green-500"
+                            placeholder="1000000"
+                            style={{appearance: 'textfield'}}
+                          />
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <span className="text-xs text-gray-500">Max</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Current Selection Display */}
+                    <div className="text-center mt-4">
+                      <span className="text-sm font-medium text-green-400">
+                        Selected Range: {formData.salaryMin && formData.salaryMax ? 
+                          `LKR ${parseInt(formData.salaryMin).toLocaleString()} - LKR ${parseInt(formData.salaryMax).toLocaleString()}` : 
+                          'Select a salary range'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
               {/* Job Type and Remote Option */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -534,7 +736,7 @@ function JobRolePanel() {
                     name="isRemote"
                     checked={formData.isRemote}
                     onChange={handleChange}
-                    className="h-4 w-4 rounded border-gray-700 bg-gray-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-800"
+                    className="h-4 w-4 rounded border-gray-700 bg-gray-700 text-green-500 focus:ring-green-500 focus:ring-offset-gray-800"
                   />
                   <label htmlFor="isRemote" className="ml-2 text-sm font-medium text-gray-300">
                     Remote Position
@@ -568,7 +770,7 @@ function JobRolePanel() {
                     name="status"
                     value={formData.status}
                     onChange={handleChange}
-                    className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                   >
                     <option value="active">Active</option>
                     <option value="draft">Draft</option>
@@ -586,7 +788,7 @@ function JobRolePanel() {
                     type="text"
                     value={currentSkill}
                     onChange={(e) => setCurrentSkill(e.target.value)}
-                    className="flex-grow bg-gray-800 bg-opacity-50 border border-gray-700 rounded-l-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-grow bg-gray-800 bg-opacity-50 border border-gray-700 rounded-l-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                     placeholder="Add a skill"
                     onKeyPress={(e) => {
                       if (e.key === 'Enter') {
@@ -598,7 +800,7 @@ function JobRolePanel() {
                   <button
                     type="button"
                     onClick={handleAddSkill}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-r-lg transition-colors"
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-r-lg transition-colors"
                   >
                     Add
                   </button>
@@ -609,7 +811,7 @@ function JobRolePanel() {
                     {formData.skills.map((skill, index) => (
                       <div 
                         key={index} 
-                        className="bg-blue-900 bg-opacity-50 px-3 py-1 rounded-full flex items-center"
+                        className="bg-green-900 bg-opacity-50 px-3 py-1 rounded-full flex items-center"
                       >
                         <span className="text-blue-300 text-sm">{skill}</span>
                         <button
@@ -638,13 +840,13 @@ function JobRolePanel() {
                   value={formData.responsibilities}
                   onChange={handleChange}
                   rows="3"
-                  className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                   placeholder="Enter job responsibilities"
                 />
               </div>
               
               <div className="mb-4">
-                <h3 className="text-sm font-medium text-blue-400 mb-3 border-b border-gray-700 pb-1">Educational Requirements</h3>
+                <h3 className="text-sm font-medium text-green-400 mb-3 border-b border-gray-700 pb-1">Educational Requirements</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="minEducation" className="block text-sm font-medium text-gray-300 mb-1">
@@ -656,7 +858,7 @@ function JobRolePanel() {
                       name="minEducation"
                       value={formData.minEducation}
                       onChange={handleChange}
-                      className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                     >
                       <optgroup label="High School">
                         {educationByRank[1]?.map(edu => (
@@ -701,7 +903,7 @@ function JobRolePanel() {
                       name="preferredEducation"
                       value={formData.preferredEducation}
                       onChange={handleChange}
-                      className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                     >
                       <option value="">No preference</option>
                       <optgroup label="Bachelor's Degree">
@@ -734,7 +936,7 @@ function JobRolePanel() {
                   value={formData.qualifications}
                   onChange={handleChange}
                   rows="3"
-                  className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                   placeholder="Enter any additional qualifications or certifications required"
                 />
               </div>
@@ -752,7 +954,7 @@ function JobRolePanel() {
                   type="button"
                   onClick={handleSubmit}
                   disabled={isLoading}
-                  className={`bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm transition-colors ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  className={`bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm transition-colors ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
                   {isLoading ? (
                     <span className="flex items-center">
@@ -773,7 +975,7 @@ function JobRolePanel() {
           <div className="bg-gray-900 bg-opacity-70 rounded-xl backdrop-blur-sm shadow-xl p-6 card-3d mb-6">
             <h2 className="text-xl font-semibold text-white mb-6 flex items-center">
               <span className="mr-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-400">
                   <path d="M12 8v4l3 3"></path>
                   <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"></path>
                 </svg>
@@ -838,7 +1040,7 @@ function JobRolePanel() {
                                 e.stopPropagation();
                                 handleEditRole(role.id);
                               }}
-                              className="text-blue-500 hover:text-blue-400"
+                              className="text-green-500 hover:text-green-400"
                               aria-label="Edit job role"
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -875,7 +1077,7 @@ function JobRolePanel() {
           <div className="bg-gray-900 bg-opacity-70 rounded-xl backdrop-blur-sm shadow-xl p-6 card-3d">
             <h3 className="text-lg font-medium text-white mb-4 flex items-center">
               <span className="mr-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-400">
                   <circle cx="12" cy="12" r="10"></circle>
                   <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
                   <line x1="12" y1="17" x2="12.01" y2="17"></line>
@@ -887,7 +1089,7 @@ function JobRolePanel() {
               <p>Create job roles that will be used to match candidate resumes. These roles define the requirements and qualifications needed.</p>
               <p className="border-t border-gray-800 pt-3 mt-2">Fields marked with <span className="text-red-400">*</span> are required.</p>
               <p>
-                <strong className="text-blue-300">Note:</strong> Job roles are saved to both the server and locally. If the server is unavailable, your changes will be saved locally and synchronized when the connection is restored.
+                <strong className="text-green-300">Note:</strong> Job roles are saved to both the server and locally. If the server is unavailable, your changes will be saved locally and synchronized when the connection is restored.
               </p>
             </div>
           </div>
