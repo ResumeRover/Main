@@ -1,23 +1,91 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useRef } from 'react';
 import { ThemeContext } from './ThemeContext';
-import { ArrowLeft, Search, ChevronRight, MapPin, DollarSign, Briefcase, Filter } from 'react-feather';
+import { 
+  ArrowLeft, 
+  Search, 
+  ChevronRight, 
+  MapPin, 
+  DollarSign, 
+  Briefcase, 
+  Filter, 
+  Star, 
+  Clock, 
+  Calendar,
+  Home,
+  Info,
+  Menu,
+  BookOpen,
+  Award
+} from 'react-feather';
 import ThemeToggle from './ThemeToggle';
-import { Home, Info } from 'react-feather';
-import { Menu } from 'react-feather';
-import { LogIn } from 'react-feather';
 import JobSearchAndFilter from './JobSearchAndFilter';
-import { X } from 'react-feather';
 import axios from 'axios';
-import img from "../public/assests/logox.png"
+import img from "/logox.png"
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
-const Jobs = ({ currentPage, JOBS, handleJobClick, handleBackClick, setCurrentPage }) => {
+const Jobs = () => {
   const { isDarkMode } = useContext(ThemeContext);
   const [allJobs, setAllJobs] = useState([]);
   const [filteredJobs, setFilteredJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [highlightedJob, setHighlightedJob] = useState(null);
+  const filterRef = useRef(null); // Reference to the filter component for reset
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // Load jobs from both API and props
+  // Sample jobs data for fallback
+  const SAMPLE_JOBS = [
+    {
+      id: "sample-job-1",
+      title: "Frontend Developer",
+      company: "Tech Solutions",
+      type: "Full-time",
+      location: "Remote",
+      salary: "LKR 100,000 - 150,000",
+      description: "We're looking for a skilled frontend developer with experience in React, TypeScript, and modern web technologies.",
+      responsibilities: ["React", "TypeScript", "CSS", "UI/UX"],
+      required_education: "Bachelor's",
+      preferred_education: "Master's",
+      remote: true,
+      posted_date: "2023-12-15",
+      experience: "2-4 years"
+    },
+    {
+      id: "sample-job-2",
+      title: "Backend Engineer",
+      company: "DataSystems Inc",
+      type: "Full-time",
+      location: "Colombo",
+      salary: "LKR 120,000 - 180,000",
+      description: "Seeking a backend engineer to develop and maintain our server-side applications and databases.",
+      responsibilities: ["Node.js", "MongoDB", "API Development", "AWS"],
+      required_education: "Bachelor's",
+      preferred_education: "Master's",
+      remote: false,
+      posted_date: "2024-01-05",
+      experience: "3-5 years"
+    },
+    {
+      id: "sample-job-3",
+      title: "UI/UX Designer",
+      company: "Creative Minds",
+      type: "Contract",
+      location: "Hybrid",
+      salary: "LKR 90,000 - 130,000",
+      description: "Looking for a creative designer to improve user experiences across our digital products.",
+      responsibilities: ["Figma", "User Research", "Prototyping", "UI Design"],
+      required_education: "Bachelor's",
+      preferred_education: "",
+      remote: true,
+      posted_date: "2024-01-12",
+      experience: "2+ years"
+    }
+  ];
+
+  // Load jobs from both API and localStorage
   useEffect(() => {
     const loadJobs = async () => {
       setLoading(true);
@@ -43,13 +111,15 @@ const Jobs = ({ currentPage, JOBS, handleJobClick, handleBackClick, setCurrentPa
             company: job.company || 'Not specified',
             type: job.job_type || 'Full-time',
             location: job.location || 'Remote',
-            salary: job.salary_range || '$Not specified',
+            salary: job.salary_range || 'LKR Not specified',
             description: job.description || 'No description available',
             responsibilities: job.required_skills ? job.required_skills.map(skill => `${skill}`) : 
                              ['No specific responsibilities listed'],
             required_education: job.required_education || '',
             preferred_education: job.preferred_education || '',
-            remote: job.remote === 'True' || job.remote === true
+            remote: job.remote === 'True' || job.remote === true,
+            posted_date: job.posted_date || getRandomDate(),
+            experience: job.experience || getRandomExperience()
           }));
         }
         
@@ -72,7 +142,9 @@ const Jobs = ({ currentPage, JOBS, handleJobClick, handleBackClick, setCurrentPa
               responsibilities: job.skills || [],
               required_education: job.minEducation || '',
               preferred_education: job.preferredEducation || '',
-              remote: job.isRemote
+              remote: job.isRemote,
+              posted_date: job.posted_date || getRandomDate(),
+              experience: job.experience || getRandomExperience()
             }));
           }
         } catch (localErr) {
@@ -83,9 +155,11 @@ const Jobs = ({ currentPage, JOBS, handleJobClick, handleBackClick, setCurrentPa
         const combinedJobs = [
           ...apiJobs,
           ...localJobs,
-          ...(JOBS || [])
+          ...SAMPLE_JOBS
         ].filter((job, index, self) => 
-          index === self.findIndex(j => j.title === job.title)
+          index === self.findIndex(j => 
+            (j.id && j.id === job.id) || (j.title === job.title && j.company === job.company)
+          )
         );
         
         setAllJobs(combinedJobs);
@@ -94,7 +168,7 @@ const Jobs = ({ currentPage, JOBS, handleJobClick, handleBackClick, setCurrentPa
         console.error('Error fetching jobs:', err);
         setError('Failed to load jobs from server');
         
-        // Fall back to localStorage and props as a backup
+        // Fall back to localStorage and sample jobs as a backup
         try {
           let fallbackJobs = [];
           
@@ -115,22 +189,22 @@ const Jobs = ({ currentPage, JOBS, handleJobClick, handleBackClick, setCurrentPa
               responsibilities: job.skills || [],
               required_education: job.minEducation || '',
               preferred_education: job.preferredEducation || '',
-              remote: job.isRemote
+              remote: job.isRemote,
+              posted_date: job.posted_date || getRandomDate(),
+              experience: job.experience || getRandomExperience()
             }));
           }
           
-          // Add sample jobs from props as well
-          const combined = [...fallbackJobs, ...(JOBS || [])];
+          // Add sample jobs as well
+          const combined = [...fallbackJobs, ...SAMPLE_JOBS];
           setAllJobs(combined);
           setFilteredJobs(combined);
         } catch (fallbackErr) {
           console.error('Error loading fallback jobs:', fallbackErr);
           
-          // Last resort - use only sample jobs from props
-          if (JOBS && JOBS.length > 0) {
-            setAllJobs(JOBS);
-            setFilteredJobs(JOBS);
-          }
+          // Last resort - use only sample jobs
+          setAllJobs(SAMPLE_JOBS);
+          setFilteredJobs(SAMPLE_JOBS);
         }
       } finally {
         setLoading(false);
@@ -138,312 +212,515 @@ const Jobs = ({ currentPage, JOBS, handleJobClick, handleBackClick, setCurrentPa
     };
 
     loadJobs();
-  }, [JOBS]);
+  }, []);
 
-  const JobCard = ({ job, handleJobClick }) => {
-    const { isDarkMode } = useContext(ThemeContext);
+  // Helper function to generate random dates for sample jobs
+  const getRandomDate = () => {
+    const currentDate = new Date();
+    const pastDate = new Date();
+    pastDate.setDate(currentDate.getDate() - Math.floor(Math.random() * 30));
+    return pastDate.toISOString().split('T')[0];
+  };
+
+  // Helper function to generate random experience requirements
+  const getRandomExperience = () => {
+    const experiences = ['1-2 years', '2-3 years', '3-5 years', '5+ years', 'Entry Level'];
+    return experiences[Math.floor(Math.random() * experiences.length)];
+  };
+
+  // Calculate days ago from date string
+  const getDaysAgo = (dateString) => {
+    if (!dateString) return 'Recently';
+    
+    const jobDate = new Date(dateString);
+    const currentDate = new Date();
+    const diffTime = Math.abs(currentDate - jobDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    return `${Math.floor(diffDays / 30)} months ago`;
+  };
+
+  // Reset all filters
+  const resetFilters = () => {
+    setFilteredJobs(allJobs);
+    // If you have a reference to the filter component, reset it
+    if (filterRef.current && typeof filterRef.current.resetFilters === 'function') {
+      filterRef.current.resetFilters();
+    }
+  };
+
+  // Grid view job card component
+  const JobCardGrid = ({ job }) => {
+    const handleClick = () => {
+      navigate(`/jobs/${job.id}`, { state: { job } });
+    };
     
     return (
       <div
-        onClick={() => handleJobClick(job)}
-        className={`rounded-2xl cursor-pointer transform transition-all hover:scale-[1.02] hover:shadow-xl ${
-          isDarkMode ? 'bg-gray-800 hover:shadow-primary-900/20' : 'bg-white hover:shadow-primary-500/20'
-        } shadow-lg p-6`}
+        onClick={handleClick}
+        className={`rounded-xl cursor-pointer transition-all duration-200 ${
+          isDarkMode 
+            ? 'bg-gray-800 hover:bg-gray-750 border border-transparent hover:border-gray-700' 
+            : 'bg-white hover:shadow-md border border-transparent hover:border-gray-200'
+        } shadow p-6 relative`}
       >
-        <div className="flex justify-between items-start mb-4">
-          <h2 className="text-xl font-bold">{job.title}</h2>
-          <span
-            className={`px-3 py-1 rounded-full text-sm font-medium ${
-              isDarkMode ? 'bg-primary-900 text-primary-300' : 'bg-primary-100 text-primary-700'
-            }`}
-          >
-            {job.type}
-          </span>
-        </div>
-        <div className="flex items-center text-gray-600 dark:text-gray-300 mb-2">
-          <Briefcase size={16} className="mr-2" />
-          <span>{job.company}</span>
-        </div>
-        <div className="flex items-center text-gray-600 dark:text-gray-300 mb-2">
-          <MapPin size={16} className="mr-2" />
-          <span>{job.location}</span>
-        </div>
-        <div className="flex items-center text-gray-600 dark:text-gray-300 mb-4">
-          <DollarSign size={16} className="mr-2" />
-          <span>{job.salary}</span>
-        </div>
-        <p className={`mb-4 line-clamp-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-          {job.description}
-        </p>
-        <div className="flex justify-end">
-          <button className={`flex items-center font-medium ${isDarkMode ? 'text-primary-400' : 'text-primary-600'}`}>
-            View Details <ChevronRight size={16} className="ml-1" />
-          </button>
+        <div className="relative">
+          <div className="flex justify-between items-start mb-4">
+            <h2 className={`text-xl font-bold hover:text-primary-500 transition-colors duration-200`}>
+              {job.title}
+            </h2>
+            <span
+              className={`px-3 py-1 rounded-full text-sm font-medium ${
+                isDarkMode ? 'bg-primary-900/50 text-primary-300' : 'bg-primary-100 text-primary-700'
+              }`}
+            >
+              {job.type}
+            </span>
+          </div>
+          
+          <div className="flex items-center text-gray-600 dark:text-gray-300 mb-3">
+            <Briefcase size={16} className="mr-2" />
+            <span className="font-medium">{job.company}</span>
+          </div>
+          
+          <div className="space-y-2 mb-4">
+            <div className="flex items-center text-gray-600 dark:text-gray-300">
+              <MapPin size={16} className="mr-2 flex-shrink-0" />
+              <span className="truncate">{job.location}</span>
+            </div>
+            
+            <div className="flex items-center text-gray-600 dark:text-gray-300">
+              <DollarSign size={16} className="mr-2 flex-shrink-0" />
+              <span className="truncate">{job.salary}</span>
+            </div>
+            
+            <div className="flex items-center text-gray-600 dark:text-gray-300">
+              <Award size={16} className="mr-2 flex-shrink-0" />
+              <span className="truncate">{job.experience || 'Experience not specified'}</span>
+            </div>
+          </div>
+          
+          <p className={`mb-4 line-clamp-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            {job.description}
+          </p>
+          
+          {job.responsibilities && job.responsibilities.length > 0 && (
+            <div className="mb-4">
+              <div className="flex flex-wrap gap-2">
+                {job.responsibilities.slice(0, 3).map((skill, index) => (
+                  <span
+                    key={index}
+                    className={`text-xs px-2 py-1 rounded-full ${
+                      isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    {skill}
+                  </span>
+                ))}
+                {job.responsibilities.length > 3 && (
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full ${
+                      isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    +{job.responsibilities.length - 3} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              <Clock size={14} className="inline mr-1" />
+              {getDaysAgo(job.posted_date)}
+            </div>
+            <span className={`flex items-center font-medium ${
+              isDarkMode ? 'text-primary-400' : 'text-primary-600'
+            }`}>
+              View Details <ChevronRight size={16} className="ml-1" />
+            </span>
+          </div>
         </div>
       </div>
     );
   };
 
-  if (currentPage === 'jobs') {
+  // List view job card
+  const JobCardList = ({ job }) => {
+    const handleClick = () => {
+      navigate(`/jobs/${job.id}`, { state: { job } });
+    };
+    
     return (
-      <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-900'} transition-colors duration-300`}>
-        {/* Navigation */}
-        <nav
-          className={`fixed w-full z-10 transition-all duration-300 ${
-            isDarkMode
-              ? "bg-gray-900/80 backdrop-blur-md border-b border-gray-800/50"
-              : "bg-white/80 backdrop-blur-md border-b border-slate-200/50"
-          }`}
-        >
-          <div className="container mx-auto flex justify-between items-center px-6 py-3">
-            {/* Logo and brand name with unique glowing animation */}
-            <div className="flex items-center">
-              <div className="relative group overflow-hidden">
-                {/* Animated circular flare effect */}
-                <div className="absolute inset-0 z-0">
-                  <div className="absolute -inset-[10%] w-[120%] h-[120%] bg-gradient-to-r from-primary-600/20 via-violet-500/30 to-primary-600/20 opacity-0 group-hover:opacity-100 rotate-0 group-hover:rotate-180 scale-0 group-hover:scale-100 transition-all duration-1000 rounded-full blur-md"></div>
-                </div>
-                
-                {/* Traveling glow effect */}
-                <div className="absolute -inset-1 z-0 ">
-                  <div className="w-20 h-20 absolute -top-10 -left-10 bg-primary-100/90 rounded-full blur-xl animate-glow-travel"></div>
-                </div>
-                
-                {/* Main container */}
-                <div
-                  className={`relative z-10 flex items-center justify-center space-x-3 px-4 py-2 rounded-lg border bg-white ${
-                    isDarkMode 
-                      ? "bg-gray-100/60 backdrop-blur-sm border-gray-700/40 " 
-                      : "bg-white/80 backdrop-blur-sm border-gray-200/40"
-                  } transition-all duration-300`}
-                >
-                  <div className="flex items-center justify-center w-full h-10 ">
-                    {/* Logo with unique pulsing glow */}
-                    <div className="relative">
-                      {/* Inner ring */}
-                      <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary-500 to-violet-500 blur-sm opacity-0 group-hover:opacity-60 scale-90 group-hover:scale-110 transition-all duration-700 animate-ping-slow"></div>
-                      
-                      {/* Outer ring */}
-                      <div className="absolute inset-0 rounded-full bg-gradient-to-r from-violet-500 to-primary-500 blur-md opacity-0 group-hover:opacity-40 scale-75 group-hover:scale-125 transition-all duration-1000 animate-pulse-reverse"></div>
-                      
-                      {/* Logo image with subtle bounce */}
-                      <img
-                        src={img}
-                        alt="Logo"
-                        className="relative h-10 w-30 rounded-full animate-subtle-bounce z-10 drop-shadow-lg"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Navigation links */}
-            <div className="hidden md:flex items-center space-x-8">
-              {/* Jobs Link */}
-              <div className="relative group">
-                <div className="absolute -inset-2 bg-gradient-to-r from-primary-500/0 via-primary-500/0 to-violet-500/0 rounded-lg blur-md group-hover:via-primary-500/20 transition-all duration-300"></div>
-                <a
-                  href="#"
-                  className={`relative font-medium text-base px-1.5 py-1 transition-all duration-300 
-                    ${isDarkMode ? "text-gray-300" : "text-gray-700"}
-                    group-hover:text-primary-500 after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 
-                    after:bg-gradient-to-r after:from-primary-500 after:to-violet-500 
-                    after:transition-all after:duration-300 group-hover:after:w-full`}
-                >
-                  <span className="relative">
-                    <span className="absolute -inset-1 rounded-lg opacity-0 group-hover:opacity-100 bg-gradient-to-r from-primary-500/10 to-violet-500/10 blur-sm transition-all duration-300"></span>
-                    <span className="relative inline-flex items-center">
-                      <Briefcase size={16} className="mr-1.5 opacity-80" />
-                      Jobs
-                    </span>
-                  </span>
-                </a>
-              </div>
-
-              {/* Companies Link */}
-              <div className="relative group">
-                <div className="absolute -inset-2 bg-gradient-to-r from-primary-500/0 via-primary-500/0 to-violet-500/0 rounded-lg blur-md group-hover:via-primary-500/20 transition-all duration-300"></div>
-                <a
-                  href="#"
-                  className={`relative font-medium text-base px-1.5 py-1 transition-all duration-300 
-                    ${isDarkMode ? "text-gray-300" : "text-gray-700"}
-                    group-hover:text-primary-500 after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 
-                    after:bg-gradient-to-r after:from-primary-500 after:to-violet-500 
-                    after:transition-all after:duration-300 group-hover:after:w-full`}
-                >
-                  <span className="relative">
-                    <span className="absolute -inset-1 rounded-lg opacity-0 group-hover:opacity-100 bg-gradient-to-r from-primary-500/10 to-violet-500/10 blur-sm transition-all duration-300"></span>
-                    <span className="relative inline-flex items-center">
-                      <Briefcase size={16} className="mr-1.5 opacity-80" />
-                      Companies
-                    </span>
-                  </span>
-                </a>
-              </div>
-
-              {/* About Link */}
-              <div className="relative group">
-                <div className="absolute -inset-2 bg-gradient-to-r from-primary-500/0 via-primary-500/0 to-violet-500/0 rounded-lg blur-md group-hover:via-primary-500/20 transition-all duration-300"></div>
-                <a
-                  href="#"
-                  className={`relative font-medium text-base px-1.5 py-1 transition-all duration-300 
-                    ${isDarkMode ? "text-gray-300" : "text-gray-700"}
-                    group-hover:text-primary-500 after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 
-                    after:bg-gradient-to-r after:from-primary-500 after:to-violet-500 
-                    after:transition-all after:duration-300 group-hover:after:w-full`}
-                >
-                  <span className="relative">
-                    <span className="absolute -inset-1 rounded-lg opacity-0 group-hover:opacity-100 bg-gradient-to-r from-primary-500/10 to-violet-500/10 blur-sm transition-all duration-300"></span>
-                    <span className="relative inline-flex items-center">
-                      <Info size={16} className="mr-1.5 opacity-80" />
-                      About
-                    </span>
-                  </span>
-                </a>
-              </div>
-
-              {/* Active/Current Page Indicator */}
-              <div className="relative group">
-                <div className="absolute -inset-2 bg-gradient-to-r from-primary-500/10 via-primary-500/20 to-violet-500/10 rounded-lg blur-md"></div>
-                <a
-                  href="#"
-                  className={`relative font-medium text-base px-3 py-1.5 transition-all duration-300 
-                    text-primary-500 rounded-lg
-                    ${isDarkMode ? "bg-gray-800/50" : "bg-white/50"} 
-                    shadow-sm after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-full 
-                    after:bg-gradient-to-r after:from-primary-500 after:to-violet-500`}
-                >
-                  <span className="relative">
-                    <span className="absolute -inset-1 rounded-lg opacity-30 bg-gradient-to-r from-primary-500/10 to-violet-500/10 blur-sm animate-pulse-slow"></span>
-                    <span className="relative inline-flex items-center">
-                      <Home size={16} className="mr-1.5" />
-                      Home
-                    </span>
-                  </span>
-                </a>
-              </div>
-            </div>
-
-            {/* Right side elements */}
-            <div className="flex items-center space-x-4">
-              <button
-                className={`hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-full transition ${
-                  isDarkMode
-                    ? "bg-gray-800 hover:bg-gray-700"
-                    : "bg-gray-100 hover:bg-gray-200"
+      <div
+        onClick={handleClick}
+        className={`rounded-xl cursor-pointer transition-all duration-200 ${
+          isDarkMode 
+            ? 'bg-gray-800 hover:bg-gray-750 border-l-4 border-transparent hover:border-l-primary-500' 
+            : 'bg-white hover:shadow-md border-l-4 border-transparent hover:border-l-primary-500'
+        } shadow p-5 relative`}
+      >
+        <div className="relative flex flex-col md:flex-row">
+          <div className="md:flex-1 mb-4 md:mb-0 md:mr-6">
+            <div className="flex justify-between items-start mb-3">
+              <h2 className={`text-xl font-bold hover:text-primary-500 transition-colors duration-200`}>
+                {job.title}
+              </h2>
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  isDarkMode ? 'bg-primary-900/50 text-primary-300' : 'bg-primary-100 text-primary-700'
                 }`}
               >
-                <Search
-                  size={16}
-                  className={isDarkMode ? "text-gray-400" : "text-gray-500"}
-                />
-                <span
-                  className={`text-sm ${
-                    isDarkMode ? "text-gray-400" : "text-gray-500"
-                  }`}
-                >
-                  Search...
-                </span>
-              </button>
-
-              <div className="h-8 w-px bg-gray-300 dark:bg-gray-700 hidden sm:block"></div>
-
-              <ThemeToggle />
-
-              <button className="md:hidden">
-                <Menu
-                  className={isDarkMode ? "text-grey-300" : "text-gray-700"}
-                  size={24}
-                />
-              </button>
+                {job.type}
+              </span>
             </div>
-          </div>
-        </nav>
-        
-        <div className="container mx-auto px-6 pt-24 pb-16">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold">Available Positions</h1>
             
-            {/* Back Button */}
-            <button 
-              onClick={() => setCurrentPage('home')} 
-              className="group relative px-4 py-2.5 rounded-lg overflow-hidden transition-all duration-300"
-            >
-              {/* 3D shadow and glow effects */}
-              <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-primary-600/10 to-primary-400/10 
-                dark:from-primary-500/15 dark:to-primary-400/15
-                opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              
-              <div className={`absolute inset-0 rounded-lg ${
-                isDarkMode 
-                  ? "shadow-[0_0_0_1px_rgba(59,130,246,0.1)_inset,0_-3px_4px_0_rgba(17,24,39,0.3)_inset]" 
-                  : "shadow-[0_0_0_1px_rgba(59,130,246,0.15)_inset,0_-2px_5px_0_rgba(0,0,0,0.05)_inset]"
-              } group-hover:shadow-[0_0_0_1.5px_rgba(var(--color-primary-500),0.4)_inset,0_-3px_4px_0_rgba(17,24,39,0.2)_inset] transition-all duration-300`}></div>
-              
-              {/* Background with gradient */}
-              <div className={`absolute inset-0 rounded-lg ${
-                isDarkMode
-                  ? "bg-gray-800" 
-                  : "bg-white"
-              } group-hover:bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 transition-all duration-300`}></div>
-              
-              {/* Animated arrow and text */}
-              <div className="relative flex items-center">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full mr-2 
-                  bg-primary-500/10 group-hover:bg-primary-500/20 transition-all duration-300
-                  transform group-hover:-translate-x-1 group-hover:scale-110">
-                  <ArrowLeft size={14} className={`${
-                    isDarkMode ? 'text-primary-400' : 'text-primary-600'
-                  } transform transition-all duration-300`} />
-                </span>
-                
-                <span className={`font-medium ${
-                  isDarkMode ? 'text-primary-400' : 'text-primary-600'
-                } group-hover:bg-gradient-to-r group-hover:from-primary-500 group-hover:to-primary-400 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300`}>
-                  Back to Home
-                </span>
-              </div>
-              
-              {/* Edge highlight for 3D effect */}
-              <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-primary-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </button>
-          </div>
-          
-          {/* Search and filter component */}
-          <JobSearchAndFilter jobs={allJobs} setFilteredJobs={setFilteredJobs} />
-          
-          {/* Error Message */}
-          {error && (
-            <div className={`mb-6 p-4 rounded-xl ${isDarkMode ? 'bg-red-900/30' : 'bg-red-50'} border ${isDarkMode ? 'border-red-800' : 'border-red-200'} text-${isDarkMode ? 'red-300' : 'red-600'}`}>
-              <p>Error loading jobs: {error}</p>
-              <p className="text-sm mt-1">Showing fallback job listings.</p>
+            <div className="flex items-center text-gray-600 dark:text-gray-300 mb-3">
+              <Briefcase size={16} className="mr-2" />
+              <span className="font-medium">{job.company}</span>
             </div>
-          )}
-          
-          {/* Display job results */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {loading ? (
-              <div className="text-center py-8 col-span-2 flex justify-center items-center">
-                <div className={`animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 ${isDarkMode ? 'border-primary-400' : 'border-primary-600'} mr-3`}></div>
-                <span>Loading jobs...</span>
-              </div>
-            ) : filteredJobs.length > 0 ? (
-              filteredJobs.map((job) => (
-                <JobCard key={job.id || job.title} job={job} handleJobClick={handleJobClick} />
-              ))
-            ) : (
-              <div className="text-center py-8 col-span-2">
-                <p className="text-lg">No jobs match your search criteria</p>
+            
+            <p className={`mb-3 line-clamp-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              {job.description}
+            </p>
+            
+            {job.responsibilities && job.responsibilities.length > 0 && (
+              <div className="mb-3">
+                <div className="flex flex-wrap gap-2">
+                  {job.responsibilities.slice(0, 4).map((skill, index) => (
+                    <span
+                      key={index}
+                      className={`text-xs px-2 py-1 rounded-full ${
+                        isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                  {job.responsibilities.length > 4 && (
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full ${
+                        isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      +{job.responsibilities.length - 4} more
+                    </span>
+                  )}
+                </div>
               </div>
             )}
+          </div>
+          
+          <div className="md:w-64 flex flex-col justify-between">
+            <div className="space-y-2 mb-3">
+              <div className="flex items-center text-gray-600 dark:text-gray-300">
+                <MapPin size={16} className="mr-2 flex-shrink-0" />
+                <span className="truncate">{job.location}</span>
+              </div>
+              
+              <div className="flex items-center text-gray-600 dark:text-gray-300">
+                <DollarSign size={16} className="mr-2 flex-shrink-0" />
+                <span className="truncate">{job.salary}</span>
+              </div>
+              
+              <div className="flex items-center text-gray-600 dark:text-gray-300">
+                <Award size={16} className="mr-2 flex-shrink-0" />
+                <span className="truncate">{job.experience || 'Not specified'}</span>
+              </div>
+              
+              {job.required_education && (
+                <div className="flex items-center text-gray-600 dark:text-gray-300">
+                  <BookOpen size={16} className="mr-2 flex-shrink-0" />
+                  <span className="truncate">{job.required_education}</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                <Clock size={14} className="inline mr-1" />
+                {getDaysAgo(job.posted_date)}
+              </div>
+              <span className={`flex items-center font-medium ${
+                isDarkMode ? 'text-primary-400' : 'text-primary-600'
+              }`}>
+                Details <ChevronRight size={16} className="ml-1" />
+              </span>
+            </div>
           </div>
         </div>
       </div>
     );
-  }
-  
-  return null;
+  };
+
+  // View toggle button component
+  const ViewToggle = () => {
+    return (
+      <div className={`flex p-1 rounded-lg ${
+        isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+      }`}>
+        <button
+          onClick={() => setViewMode('grid')}
+          className={`px-3 py-1.5 rounded-md flex items-center ${
+            viewMode === 'grid' 
+              ? isDarkMode 
+                ? 'bg-gray-600 text-primary-400' 
+                : 'bg-white shadow-sm text-primary-600'
+              : isDarkMode 
+                ? 'text-gray-400 hover:text-gray-300' 
+                : 'text-gray-600 hover:text-gray-800'
+          } transition-colors`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+          </svg>
+          Grid
+        </button>
+        <button
+          onClick={() => setViewMode('list')}
+          className={`px-3 py-1.5 rounded-md flex items-center ${
+            viewMode === 'list' 
+              ? isDarkMode 
+                ? 'bg-gray-600 text-primary-400' 
+                : 'bg-white shadow-sm text-primary-600'
+              : isDarkMode 
+                ? 'text-gray-400 hover:text-gray-300' 
+                : 'text-gray-600 hover:text-gray-800'
+          } transition-colors`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          List
+        </button>
+      </div>
+    );
+  };
+
+  return (
+    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-900'}`}>
+      {/* Navigation */}
+      <nav
+        className={`fixed w-full z-10 ${
+          isDarkMode
+            ? "bg-gray-900/95 border-b border-gray-800"
+            : "bg-white/95 border-b border-slate-200"
+        }`}
+      >
+        <div className="container mx-auto flex justify-between items-center px-6 py-3">
+          {/* Logo */}
+          <div className="flex items-center">
+            <Link to="/">
+              <div
+                className={`flex items-center justify-center space-x-3 px-4 py-2 rounded-lg border ${
+                  isDarkMode 
+                    ? "bg-gray-800 border-gray-700" 
+                    : "bg-white border-gray-200"
+                }`}
+              >
+                <div className="flex items-center justify-center w-full h-10">
+                  <img
+                    src={img}
+                    alt="Logo"
+                    className="h-10 w-30 rounded-full z-10"
+                  />
+                </div>
+              </div>
+            </Link>
+          </div>
+
+          {/* Navigation links */}
+          <div className="hidden md:flex items-center space-x-8">
+            {/* Jobs Link - Active */}
+            <Link
+              to="/jobs"
+              className={`font-medium text-base px-3 py-1.5 text-primary-500 rounded-lg
+              ${isDarkMode ? "bg-gray-800/50" : "bg-white/50"} 
+              shadow-sm`}
+            >
+              <span className="inline-flex items-center">
+                <Briefcase size={16} className="mr-1.5" />
+                Jobs
+              </span>
+            </Link>
+
+            {/* Home Link */}
+            <Link
+              to="/"
+              className={`font-medium text-base px-1.5 py-1 ${isDarkMode ? "text-gray-300" : "text-gray-700"}
+              hover:text-primary-500`}
+            >
+              <span className="inline-flex items-center">
+                <Home size={16} className="mr-1.5 opacity-80" />
+                Home
+              </span>
+            </Link>
+
+            {/* About Link */}
+            <Link
+              to="/about"
+              className={`font-medium text-base px-1.5 py-1 ${isDarkMode ? "text-gray-300" : "text-gray-700"}
+              hover:text-primary-500`}
+            >
+              <span className="inline-flex items-center">
+                <Info size={16} className="mr-1.5 opacity-80" />
+                About
+              </span>
+            </Link>
+          </div>
+
+          {/* Right side elements */}
+          <div className="flex items-center space-x-4">
+            <button
+              className={`hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-full ${
+                isDarkMode
+                  ? "bg-gray-800 hover:bg-gray-700"
+                  : "bg-gray-100 hover:bg-gray-200"
+              }`}
+            >
+              <Search
+                size={16}
+                className={isDarkMode ? "text-gray-400" : "text-gray-500"}
+              />
+              <span
+                className={`text-sm ${
+                  isDarkMode ? "text-gray-400" : "text-gray-500"
+                }`}
+              >
+                Search...
+              </span>
+            </button>
+
+            <div className="h-8 w-px bg-gray-300 dark:bg-gray-700 hidden sm:block"></div>
+
+            <ThemeToggle />
+
+            <button className="md:hidden">
+              <Menu
+                className={isDarkMode ? "text-grey-300" : "text-gray-700"}
+                size={24}
+              />
+            </button>
+          </div>
+        </div>
+      </nav>
+      
+      <div className="container mx-auto px-6 pt-28 pb-16">
+        {/* Page header */}
+        <div className="mb-8">
+          <div className={`rounded-xl p-6 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow`}>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h1 className="text-3xl font-bold mb-2">Discover Your Perfect Job</h1>
+                <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} max-w-2xl`}>
+                  Browse through our curated list of opportunities tailored to your skills and experience.
+                </p>
+              </div>
+              
+              {/* Back Button */}
+              <Link 
+                to="/"
+                className={`px-4 py-2.5 rounded-lg ${
+                  isDarkMode 
+                    ? "bg-gray-700 hover:bg-gray-600 text-primary-400" 
+                    : "bg-gray-100 hover:bg-gray-200 text-primary-600"
+                } transition-colors flex items-center`}
+              >
+                <ArrowLeft size={16} className="mr-2" />
+                Back to Home
+              </Link>
+            </div>
+          </div>
+        </div>
+        
+        {/* Search and filter section */}
+        <div className={`rounded-xl mb-8 p-6 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow`}>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <h2 className="text-xl font-semibold flex items-center">
+              <Filter size={18} className="mr-2" />
+              Search & Filter
+            </h2>
+            
+            <div className="flex space-x-3 items-center">
+              <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                Showing <span className="font-semibold">{filteredJobs.length}</span> of {allJobs.length} jobs
+              </div>
+              <ViewToggle />
+            </div>
+          </div>
+          
+          {/* Search and filter component */}
+          <JobSearchAndFilter 
+            jobs={allJobs} 
+            setFilteredJobs={setFilteredJobs} 
+            ref={filterRef}
+          />
+        </div>
+        
+        {/* Error Message */}
+        {error && (
+          <div 
+            className={`mb-6 p-4 rounded-xl ${isDarkMode ? 'bg-red-900/30' : 'bg-red-50'} border ${isDarkMode ? 'border-red-800' : 'border-red-200'} ${isDarkMode ? 'text-red-300' : 'text-red-600'}`}
+          >
+            <p>Error loading jobs: {error}</p>
+            <p className="text-sm mt-1">Showing fallback job listings.</p>
+          </div>
+        )}
+        
+        {/* Display job results */}
+        {loading ? (
+          <div className="text-center py-16">
+            <div className="inline-block h-12 w-12 border-4 border-t-primary-500 border-r-primary-300 border-b-primary-200 border-l-primary-300 rounded-full animate-spin mb-4"></div>
+            <p className="text-lg font-medium">Loading opportunities for you...</p>
+            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>This may take a moment</p>
+          </div>
+        ) : filteredJobs.length > 0 ? (
+          <div
+            className={viewMode === 'grid' 
+              ? "grid grid-cols-1 md:grid-cols-2 gap-6" 
+              : "space-y-4"
+            }
+          >
+            {filteredJobs.map((job) => (
+              viewMode === 'grid' 
+                ? <JobCardGrid key={job.id || job.title} job={job} /> 
+                : <JobCardList key={job.id || job.title} job={job} />
+            ))}
+          </div>
+        ) : (
+          <div 
+            className={`text-center py-16 rounded-xl ${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow`}
+          >
+            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+              <Briefcase size={32} className={isDarkMode ? 'text-gray-500' : 'text-gray-400'} />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No jobs match your search criteria</h3>
+            <p className={`max-w-md mx-auto mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              Try adjusting your filters or search terms to see more opportunities
+            </p>
+            <button
+              onClick={resetFilters}
+              className={`px-4 py-2 rounded-lg ${
+                isDarkMode 
+                  ? 'bg-primary-600 hover:bg-primary-700' 
+                  : 'bg-primary-600 hover:bg-primary-700'
+              } text-white transition-colors`}
+            >
+              Clear All Filters
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default Jobs;
