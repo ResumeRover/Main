@@ -4,6 +4,7 @@
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "python",
     "MONGODB_URI": "mongodb+srv://ashidudissanayake1:chP0CyGcYR89zDeg@cluster0.4dg71cd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0&ssl=true",
-    "VERIFICATION_URL": "https://9b15-2407-c00-5002-4731-8141-a1b-d415-e2a1.ngrok-free.app"
+    "VERIFICATION_URL": "https://9b15-2407-c00-5002-4731-8141-a1b-d415-e2a1.ngrok-free.app",
+    "VERIFICATION_API_URL": "https://9cf3-2402-4000-b183-afd7-4016-47fe-ce2e-1bff.ngrok-free.app/resume-verification/initialize"
   }
 }

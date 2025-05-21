@@ -142,6 +142,7 @@ async def get_job_impl(job_id: str) -> func.HttpResponse:
         mimetype="application/json"
     )
 
+'''
 async def verify_credentials(parsed_resume_data, job_id):
     """
     Verify credentials by checking against blockchain and university/company records.
@@ -276,7 +277,8 @@ async def verify_credentials(parsed_resume_data, job_id):
         parsed_resume_data["verification_details"] = [f"Verification process error: {str(e)}"]
         parsed_resume_data["status"] = "verification_error"
         return parsed_resume_data
-
+'''
+        
 async def apply_for_job_impl(req: func.HttpRequest, job_id: str) -> func.HttpResponse:
     """
     Process job application with resume verification against blockchain.
@@ -332,6 +334,21 @@ async def apply_for_job_impl(req: func.HttpRequest, job_id: str) -> func.HttpRes
         # Convert ObjectId to string for JSON serialization
         parsed_resume["_id"] = str(parsed_resume["_id"])
         
+        # Send resume to verification API
+        verification_url = os.environ.get("VERIFICATION_API_URL")
+        if not verification_url:
+            return func.HttpResponse(
+                json.dumps({"error": "Verification API URL not configured"}),
+                mimetype="application/json",
+                status_code=500
+            )
+
+        verification_response = requests.post(
+            verification_url,
+            json={"resume_id": resume_id}
+        )
+
+        '''
         # Verify credentials against blockchain and university/company records
         verified_resume = await verify_credentials(parsed_resume, job_id)
         
@@ -368,6 +385,7 @@ async def apply_for_job_impl(req: func.HttpRequest, job_id: str) -> func.HttpRes
             mimetype="application/json",
             status_code=500
         )
+        '''
 
 async def get_user_applications_impl(user_id: str) -> func.HttpResponse:
     # Get all applications for the user
