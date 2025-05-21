@@ -17,7 +17,7 @@ const ApplyPage = () => {
   const [error, setError] = useState(null);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
-  const [isDemoMode] = useState(true); // Set true for quick demo submissions
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [localFormData, setLocalFormData] = useState({
     fullName: '',
     email: '',
@@ -106,6 +106,7 @@ const ApplyPage = () => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
+    setUploadProgress(0);
     
     try {
       // Validate form data
@@ -113,36 +114,28 @@ const ApplyPage = () => {
         throw new Error('Please fill in all required fields and upload your CV');
       }
       
-      // For demo mode, skip the actual submission and show success immediately
-      if (isDemoMode) {
-        console.log('DEMO MODE: Simulating successful submission');
-        
-        // Short timeout just for visual feedback
-        setTimeout(() => {
-          setIsSubmitting(false);
-          setSubmissionSuccess(true);
-          
-          // Redirect to success page after a brief delay
-          setTimeout(() => {
-            navigate('/success', { state: { job } });
-          }, 1500); // Shorter delay for demo
-        }, 800); // Just enough time to see the loading state
-        
-        return; // Exit early, don't do the actual API call
-      }
-      
-      // Create form data for file upload (for non-demo mode)
+      // Create form data for file upload
       const applicationData = new FormData();
       applicationData.append('job_id', job.id);
+      applicationData.append('full_name', localFormData.fullName);
+      applicationData.append('email', localFormData.email);
+      applicationData.append('phone', localFormData.phone || '');
+      applicationData.append('cover_letter', localFormData.coverLetter || '');
       applicationData.append('file', selectedFile);
       
-      // Submit application to backend
+      // Submit application to backend with progress tracking
       const response = await axios.post(
         `https://resumeparserjobscs3023.azurewebsites.net/api/jobs/${job.id}/apply?code=yfdJdeNoFZzkQynk6p56ZETolRh1NqSpOaBYcTebXJO3AzFuWbJDmQ==`,
         applicationData,
         {
           headers: {
             'Content-Type': 'multipart/form-data',
+          },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setUploadProgress(percentCompleted);
           }
         }
       );
@@ -173,9 +166,7 @@ const ApplyPage = () => {
       
       setError(errorMessage);
     } finally {
-      if (!isDemoMode) {
-        setIsSubmitting(false);
-      }
+      setIsSubmitting(false);
     }
   };
 
@@ -311,13 +302,6 @@ const ApplyPage = () => {
             {job.company} · {job.location}
           </p>
           
-          {/* Demo Mode Indicator */}
-          {/* {isDemoMode && (
-            <div className="mb-4 px-3 py-2 rounded bg-blue-900/20 border border-blue-800/30 text-blue-300 text-sm">
-              <span className="font-semibold">Demo Mode:</span> Submissions will be processed instantly.
-            </div>
-          )} */}
-          
           {/* Error message */}
           {error && (
             <div className={`mb-6 p-4 rounded-lg border ${
@@ -442,6 +426,21 @@ const ApplyPage = () => {
                 placeholder="Tell us why you're a good fit for this position"
               ></textarea>
             </div>
+            
+            {/* Upload progress bar when submitting */}
+            {isSubmitting && uploadProgress > 0 && (
+              <div className="mb-6">
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-2">
+                  <div 
+                    className="bg-primary-600 h-2.5 rounded-full" 
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+                <p className={`text-xs text-right ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {uploadProgress}% uploaded
+                </p>
+              </div>
+            )}
             
             <button
               type="submit"
