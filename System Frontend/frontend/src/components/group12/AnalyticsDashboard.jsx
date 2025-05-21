@@ -13,11 +13,11 @@ import {
 } from "@mui/material";
 import Plot from "react-plotly.js";
 import axios from "axios";
-// import { jsPDF } from "jspdf";
-// import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 
 const api = axios.create({
-  baseURL: "https://main-production-7511.up.railway.app/"
+  baseURL: "https://resumerovermain-production.up.railway.app/"
 });
 
 
@@ -47,7 +47,7 @@ const AnalyticsDashboard = () => {
   // Initialize WebSocket connection
   useEffect(() => {
     // Create WebSocket connection
-    const ws = new WebSocket("https://main-production-7511.up.railway.app/ws");
+    const ws = new WebSocket("https://resumerovermain-production.up.railway.app/ws");
 
     ws.onopen = () => {
       console.log("WebSocket Connected");
@@ -327,6 +327,11 @@ const AnalyticsDashboard = () => {
           alignItems="center"
           height="70vh"
         >
+          {/* Instructional text above search bar - now in white */}
+          <Typography variant="h5" color="#ffffff" mb={3}>
+            Search for a job role to view analytics
+          </Typography>
+          
           <Box
             display="flex"
             alignItems="center"
@@ -383,9 +388,6 @@ const AnalyticsDashboard = () => {
               Search
             </Button>
           </Box>
-          <Typography variant="h5" color="textSecondary">
-            Search for a job role to view analytics
-          </Typography>
         </Box>
       )}
 
@@ -804,21 +806,7 @@ const AnalyticsDashboard = () => {
                 <Typography variant="body2">
                   <strong>Score:</strong> {candidate.score}
                 </Typography>
-                <Button
-                  href={candidate.cvLink}
-                  target="_blank"
-                  sx={{
-                    mt: 2,
-                    backgroundColor: "#42a5f5",
-                    color: "#fff",
-                    fontWeight: "bold",
-                    "&:hover": {
-                      backgroundColor: "#1e88e5",
-                    },
-                  }}
-                >
-                  View CV
-                </Button>
+                
               </Box>
             ))
           ) : (

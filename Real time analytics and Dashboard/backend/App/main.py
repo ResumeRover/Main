@@ -280,7 +280,8 @@ async def get_candidates_by_job_role(job_role: str = Path(..., description="Job 
             "email": c.get("email"),
             "ranking_score": c.get("ranking_score"),
             "is_verified": c.get("is_verified"),
-            "phone": c.get("phone")
+            "phone": c.get("phone"),
+            "status": c.get("status")
         })
 
     if not result:
